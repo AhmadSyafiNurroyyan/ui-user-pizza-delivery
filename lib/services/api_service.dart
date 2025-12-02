@@ -76,11 +76,21 @@ class ApiService {
       print('📥 Response Status: ${response.statusCode}');
       print('📥 Response Body: ${response.body}');
 
-      final responseData = jsonDecode(response.body);
+      // Handle empty response body
+      Map<String, dynamic> responseData;
+      if (response.body.isEmpty) {
+        responseData = {
+          'success': false,
+          'message':
+              'Server returned empty response (Status: ${response.statusCode})',
+        };
+      } else {
+        responseData = jsonDecode(response.body);
 
-      // Jika ada token di response, save token
-      if (responseData['token'] != null) {
-        await _saveToken(responseData['token']);
+        // Jika ada token di response, save token
+        if (responseData['token'] != null) {
+          await _saveToken(responseData['token']);
+        }
       }
 
       return {
