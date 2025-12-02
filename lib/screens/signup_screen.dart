@@ -40,8 +40,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _showError('Password tidak boleh kosong');
       return;
     }
-    if (passwordController.text.trim().length < 6) {
-      _showError('Password minimal 6 karakter');
+    if (passwordController.text.trim().length < 8) {
+      _showError('Password minimal 8 karakter');
       return;
     }
     if (mobileController.text.trim().isEmpty) {
