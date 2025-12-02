@@ -67,6 +67,7 @@ class ApiService {
       final headers = await _getHeaders(includeAuth: requiresAuth);
 
       print('🚀 POST Request: $url');
+      print('📋 Headers: $headers');
       print('📦 Body: ${jsonEncode(body)}');
 
       final response = await http
@@ -74,6 +75,7 @@ class ApiService {
           .timeout(timeout);
 
       print('📥 Response Status: ${response.statusCode}');
+      print('📥 Response Headers: ${response.headers}');
       print('📥 Response Body: ${response.body}');
 
       // Handle empty response body

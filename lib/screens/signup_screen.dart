@@ -97,7 +97,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
       } else {
         // Gagal register
         final data = response['data'];
-        _showError(data['message'] ?? 'Gagal membuat akun. Silakan coba lagi.');
+        final statusCode = response['statusCode'];
+
+        String errorMessage =
+            data['message'] ?? 'Gagal membuat akun. Silakan coba lagi.';
+
+        // Handle specific error codes
+        if (statusCode == 403) {
+          errorMessage =
+              'Email sudah terdaftar atau tidak diizinkan. Coba email lain.';
+        } else if (statusCode == 400) {
+          errorMessage =
+              data['message'] ??
+              'Data tidak valid. Periksa kembali input Anda.';
+        } else if (statusCode >= 500) {
+          errorMessage = 'Server sedang bermasalah. Coba lagi nanti.';
+        }
+
+        _showError(errorMessage);
       }
     } catch (e) {
       setState(() {
