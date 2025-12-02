@@ -236,14 +236,14 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
 
                     // Password fields (shown only after token sent)
                     if (_emailSent) ...[
-                      Text(
-                        'Password',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+
+                    Text(
+                      'Password',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 8),
+                    ),
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
