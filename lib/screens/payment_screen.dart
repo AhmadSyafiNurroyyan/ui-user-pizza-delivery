@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
+import '../services/api_service.dart';
 import 'confirm_order_screen.dart';
 import 'delivery_address_list_screen.dart';
 
@@ -20,6 +21,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   double tax = 0;
   double delivery = 15000;
   double total = 0;
+  bool isProcessing = false;
+  int? selectedOutletId;
+  String selectedPaymentMethod = 'CREDIT_CARD';
 
   @override
   void initState() {
@@ -29,6 +33,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Load selected outlet
+    final outletIdStr = prefs.getString('selected_outlet_id');
+    if (outletIdStr != null) {
+      setState(() {
+        selectedOutletId = int.tryParse(outletIdStr);
+      });
+    }
 
     final selectedAddressRaw = prefs.getString('selected_delivery_address');
     if (selectedAddressRaw != null) {
@@ -82,6 +94,102 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
   }
 
+  Future<void> _handlePayment() async {
+    // Validasi outlet sudah dipilih
+    if (selectedOutletId == null) {
+      _showError('Silakan pilih outlet terlebih dahulu');
+      return;
+    }
+
+    // Validasi cart tidak kosong
+    if (cartItems.isEmpty) {
+      _showError('Keranjang masih kosong');
+      return;
+    }
+
+    // Validasi alamat
+    if (shippingAddress.isEmpty) {
+      _showError('Silakan pilih alamat pengiriman');
+      return;
+    }
+
+    setState(() {
+      isProcessing = true;
+    });
+
+    try {
+      // Prepare order items untuk backend
+      final List<Map<String, dynamic>> orderItems = cartItems.map((item) {
+        // Parse pizza ID dari item
+        final pizzaId = item['id'] ?? 1;
+
+        return {
+          'pizzaId': pizzaId,
+          'sizeId': 2, // Medium (default)
+          'crustId': 2, // Regular (default)
+          'quantity': item['quantity'] ?? 1,
+          'toppingIds': [], // No toppings for now
+        };
+      }).toList();
+
+      // Create order via API
+      final response = await ApiService.createOrder(
+        outletId: selectedOutletId!,
+        alamatKirim: shippingAddress,
+        items: orderItems,
+        catatan: 'Order from mobile app',
+      );
+
+      if (response['success'] == true) {
+        final data = response['data'];
+        final orderId = data['data']['idPesanan'];
+
+        // Update payment method
+        final paymentResponse = await ApiService.updatePayment(
+          orderId: orderId,
+          paymentMethod: selectedPaymentMethod,
+        );
+
+        if (paymentResponse['success'] == true) {
+          // Clear cart after successful order
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('cart_items');
+
+          // Navigate to confirmation screen
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const ConfirmOrderScreen()),
+          );
+        } else {
+          _showError('Gagal memproses pembayaran');
+        }
+      } else {
+        final errorMsg = response['data']['message'] ?? 'Gagal membuat pesanan';
+        _showError(errorMsg);
+      }
+    } catch (e) {
+      _showError('Terjadi kesalahan: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isProcessing = false;
+        });
+      }
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,7 +236,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     Row(
                       children: [
                         Text(
@@ -336,21 +443,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ConfirmOrderScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'Bayar Sekarang',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        onPressed: isProcessing ? null : _handlePayment,
+                        child: isProcessing
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: primaryColor,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                'Bayar Sekarang',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ],

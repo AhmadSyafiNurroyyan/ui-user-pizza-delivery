@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../theme.dart';
+import '../services/api_service.dart';
 import 'main_nav.dart';
 import 'signup_screen.dart';
 import 'forget_password_screen.dart';
@@ -13,7 +16,78 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  Future<void> _handleLogin() async {
+    // Validasi input
+    if (emailController.text.trim().isEmpty) {
+      _showError('Email tidak boleh kosong');
+      return;
+    }
+    if (passwordController.text.trim().isEmpty) {
+      _showError('Password tidak boleh kosong');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Call API Login
+      final response = await ApiService.login(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response['success'] == true) {
+        // Berhasil login
+        final data = response['data'];
+
+        // JWT token sudah auto-saved di ApiService
+        // Simpan user profile ke SharedPreferences
+        if (data['data'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_profile', jsonEncode(data['data']));
+        }
+
+        // Navigate ke MainNav (Home)
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNav()),
+          (route) => false,
+        );
+      } else {
+        // Gagal login
+        final data = response['data'];
+        _showError(data['message'] ?? 'Email atau password salah');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _showError('Terjadi kesalahan: $e');
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +155,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
+                        hintText: 'emailkamu@gmail.com',
+                        hintStyle: GoogleFonts.poppins(color: Colors.grey),
                         filled: true,
                         fillColor: lightYellowColor,
                         border: OutlineInputBorder(
@@ -105,6 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      controller: passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         hintText: '**************',
@@ -172,22 +251,23 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MainNav(),
-                            ),
-                            (route) => false,
-                          );
-                        },
-                        child: Text(
-                          'Log In',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        onPressed: _isLoading ? null : _handleLogin,
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                'Log In',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),

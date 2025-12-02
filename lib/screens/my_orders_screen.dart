@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
+import '../services/api_service.dart';
 import 'leave_review_screen.dart';
 import 'history_screen.dart';
 import 'cancel_order_screen.dart';
@@ -15,20 +16,113 @@ class MyOrdersScreen extends StatefulWidget {
 
 class _MyOrdersScreenState extends State<MyOrdersScreen> {
   int _selectedTab = 0; // 0: Active, 1: Completed, 2: Cancelled
+  List<Map<String, dynamic>> activeOrders = [];
+  List<Map<String, dynamic>> completedOrders = [];
+  List<Map<String, dynamic>> cancelledOrders = [];
+  bool isLoading = true;
 
-  final List<Map<String, dynamic>> activeOrders = [
-    {
-      'name': 'Pizza Medium',
-      'date': '29 Nov, 01:20 pm',
-      'price': 'Rp.81.000',
-      'items': '1 items',
-      'img':
-          'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300&auto=format&fit=crop',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
 
-  final List<Map<String, dynamic>> completedOrders = [];
-  final List<Map<String, dynamic>> cancelledOrders = [];
+  Future<void> _loadOrders() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final response = await ApiService.getMyOrders();
+
+      if (response['success'] == true) {
+        final data = response['data'];
+        final List<dynamic> orders = data['data'] ?? [];
+
+        List<Map<String, dynamic>> active = [];
+        List<Map<String, dynamic>> completed = [];
+        List<Map<String, dynamic>> cancelled = [];
+
+        for (var order in orders) {
+          final orderData = {
+            'id': order['idPesanan'],
+            'orderNumber': order['orderNumber'] ?? '',
+            'name': order['customerName'] ?? 'Order',
+            'date': _formatDate(order['tanggalPesan']),
+            'price': 'Rp ${_formatPrice(order['totalHarga'])}',
+            'status': order['statusPesanan'] ?? 'PENDING',
+            'items': '${order['items']?.length ?? 0} items',
+            'img': order['items']?.isNotEmpty
+                ? (order['items'][0]['imageUrl'] ??
+                      'https://images.unsplash.com/photo-1513104890138-7c749659a591')
+                : 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
+            'canReview': order['opsiUlasan'] ?? false,
+          };
+
+          // Categorize by status
+          if (order['statusPesanan'] == 'SELESAI') {
+            completed.add(orderData);
+          } else if (order['statusPesanan'] == 'DIBATALKAN') {
+            cancelled.add(orderData);
+          } else {
+            active.add(orderData);
+          }
+        }
+
+        setState(() {
+          activeOrders = active;
+          completedOrders = completed;
+          cancelledOrders = cancelled;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day} ${_getMonthName(date.month)}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    return months[month - 1];
+  }
+
+  String _formatPrice(dynamic price) {
+    if (price == null) return '0';
+    final priceInt = price is int ? price : (price as double).toInt();
+    return priceInt.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +194,13 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                   const SizedBox(height: 25),
 
                   Expanded(
-                    child: _selectedTab == 1
+                    child: isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: primaryColor,
+                            ),
+                          )
+                        : _selectedTab == 1
                         ? _buildCompletedOrders()
                         : _selectedTab == 2
                         ? _buildCancelledOrders()
@@ -215,7 +315,6 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             children: [
               Row(
                 children: [
-
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
@@ -356,32 +455,25 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Widget _buildCompletedOrders() {
-    final completedOrders = [
-      {
-        'name': 'Hawaiian',
-        'date': '29 Nov, 01:20 pm',
-        'price': 'Rp 50.000',
-        'items': '2 items',
-      },
-      {
-        'name': 'Calzone',
-        'date': '10 Nov, 06:05 pm',
-        'price': 'Rp 50.000',
-        'items': '2 items',
-      },
-      {
-        'name': 'Sicilian',
-        'date': '10 Nov, 08:30 am',
-        'price': 'Rp 8.000',
-        'items': '1 item',
-      },
-      {
-        'name': 'Stromboli',
-        'date': '03 Oct, 03:40 pm',
-        'price': 'Rp 22.000',
-        'items': '2 items',
-      },
-    ];
+    if (completedOrders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 100,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Belum ada pesanan selesai',
+              style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -399,11 +491,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             children: [
               Row(
                 children: [
-
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200',
+                      order['img'] ??
+                          'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200',
                       width: 65,
                       height: 65,
                       fit: BoxFit.cover,
@@ -427,7 +519,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          order['name']!,
+                          order['name'] ?? 'Order',
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -435,7 +527,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          order['date']!,
+                          order['date'] ?? '',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -468,7 +560,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        order['price']!,
+                        order['price'] ?? 'Rp 0',
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -477,7 +569,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        order['items']!,
+                        order['items'] ?? '0 items',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -500,9 +592,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => LeaveReviewScreen(
-                                productName: order['name']!,
+                                productName: order['name'] ?? 'Order',
                                 productImage:
+                                    order['img'] ??
                                     'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
+                                orderId:
+                                    order['id'], // Pass orderId for backend API
                               ),
                             ),
                           );
@@ -560,20 +655,21 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Widget _buildCancelledOrders() {
-    final cancelledOrders = [
-      {
-        'name': 'Pissaladier',
-        'date': '02 Nov, 04:00 pm',
-        'price': 'Rp 123.000',
-        'items': '3 items',
-      },
-      {
-        'name': 'Tomato Pie Pizza',
-        'date': '12 Oct, 03:15 pm',
-        'price': 'Rp 101.000',
-        'items': '2 items',
-      },
-    ];
+    if (cancelledOrders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cancel_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Belum ada pesanan dibatalkan',
+              style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -590,11 +686,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200',
+                  order['img'] ??
+                      'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200',
                   width: 70,
                   height: 70,
                   fit: BoxFit.cover,
@@ -615,7 +711,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      order['name']!,
+                      order['name'] ?? 'Order',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -623,7 +719,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      order['date']!,
+                      order['date'] ?? '',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -654,7 +750,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    order['price']!,
+                    order['price'] ?? 'Rp 0',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -663,7 +759,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    order['items']!,
+                    order['items'] ?? '0 items',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: Colors.grey[600],

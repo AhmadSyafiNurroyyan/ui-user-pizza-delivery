@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
+import '../services/api_service.dart';
 import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -19,6 +20,107 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController dobController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  Future<void> _handleSignUp() async {
+    // Validasi input
+    if (nameController.text.trim().isEmpty) {
+      _showError('Nama lengkap tidak boleh kosong');
+      return;
+    }
+    if (emailController.text.trim().isEmpty) {
+      _showError('Email tidak boleh kosong');
+      return;
+    }
+    if (!_isValidEmail(emailController.text.trim())) {
+      _showError('Format email tidak valid');
+      return;
+    }
+    if (passwordController.text.trim().isEmpty) {
+      _showError('Password tidak boleh kosong');
+      return;
+    }
+    if (passwordController.text.trim().length < 6) {
+      _showError('Password minimal 6 karakter');
+      return;
+    }
+    if (mobileController.text.trim().isEmpty) {
+      _showError('Nomor HP tidak boleh kosong');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Call API Register
+      final response = await ApiService.register(
+        nama: nameController.text.trim(),
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+        noHp: mobileController.text.trim(),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response['success'] == true) {
+        // Berhasil register
+        final data = response['data'];
+
+        // Optional: Simpan user profile ke SharedPreferences untuk display purposes
+        if (data['data'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_profile', jsonEncode(data['data']));
+        }
+
+        // Show success message
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              data['message'] ?? 'Akun berhasil dibuat! Silakan login.',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Navigate ke Login Screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } else {
+        // Gagal register
+        final data = response['data'];
+        _showError(data['message'] ?? 'Gagal membuat akun. Silakan coba lagi.');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      _showError('Terjadi kesalahan: $e');
+    }
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   Future<void> _saveSignupData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -262,34 +364,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        onPressed: () async {
-                          await _saveSignupData();
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Akun berhasil dibuat! Silakan login.',
-                                style: GoogleFonts.poppins(),
+                        onPressed: _isLoading ? null : _handleSignUp,
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                'Sign Up',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                              backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'Sign Up',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
                     ),
                     const SizedBox(height: 20),

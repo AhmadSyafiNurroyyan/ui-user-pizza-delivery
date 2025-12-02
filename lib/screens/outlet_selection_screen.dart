@@ -110,6 +110,9 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
       }),
     );
 
+    // Save outlet ID for backend API
+    await prefs.setString('selected_outlet_id', selectedOutlet!.id);
+
     setState(() => isLoading = false);
   }
 
@@ -157,6 +160,9 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
         'alamat': outlet.alamat,
       }),
     );
+
+    // Save outlet ID for backend API (convert string to int)
+    await prefs.setString('selected_outlet_id', outlet.id);
 
     setState(() {
       selectedOutlet = outlet;

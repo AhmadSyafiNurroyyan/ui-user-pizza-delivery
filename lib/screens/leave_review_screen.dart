@@ -3,15 +3,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../theme.dart';
+import '../services/api_service.dart';
 
 class LeaveReviewScreen extends StatefulWidget {
   final String productName;
   final String productImage;
+  final int? orderId; // Order ID for backend API
 
   const LeaveReviewScreen({
     super.key,
     required this.productName,
     required this.productImage,
+    this.orderId, // Optional, null if reviewing without order
   });
 
   @override
@@ -21,11 +24,23 @@ class LeaveReviewScreen extends StatefulWidget {
 class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
   int selectedRating = 0;
   final TextEditingController _reviewController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
     _reviewController.dispose();
     super.dispose();
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -195,52 +210,106 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () async {
-                              if (selectedRating > 0 &&
-                                  _reviewController.text.isNotEmpty) {
+                            onPressed: _isSubmitting
+                                ? null
+                                : () async {
+                                    if (selectedRating == 0) {
+                                      _showError('Harap pilih rating');
+                                      return;
+                                    }
+                                    if (_reviewController.text.trim().isEmpty) {
+                                      _showError('Harap isi komentar');
+                                      return;
+                                    }
 
-                                final prefs =
-                                    await SharedPreferences.getInstance();
-                                List<String> reviewsRaw =
-                                    prefs.getStringList('my_reviews') ?? [];
+                                    setState(() {
+                                      _isSubmitting = true;
+                                    });
 
-                                final review = {
-                                  'productName': widget.productName,
-                                  'productImage': widget.productImage,
-                                  'rating': selectedRating,
-                                  'comment': _reviewController.text.trim(),
-                                  'date': DateTime.now().toIso8601String(),
-                                };
+                                    try {
+                                      // If orderId provided, submit to backend API
+                                      if (widget.orderId != null) {
+                                        final response =
+                                            await ApiService.submitReview(
+                                              orderId: widget.orderId!,
+                                              rating: selectedRating,
+                                              komentar: _reviewController.text
+                                                  .trim(),
+                                            );
 
-                                reviewsRaw.add(jsonEncode(review));
-                                await prefs.setStringList(
-                                  'my_reviews',
-                                  reviewsRaw,
-                                );
+                                        setState(() {
+                                          _isSubmitting = false;
+                                        });
 
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Review berhasil dikirim!',
-                                        style: GoogleFonts.poppins(),
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                  Navigator.pop(context);
-                                }
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Harap isi rating dan komentar',
-                                      style: GoogleFonts.poppins(),
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
+                                        if (response['success'] == true) {
+                                          if (!mounted) return;
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Review berhasil dikirim!',
+                                                style: GoogleFonts.poppins(),
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                          Navigator.pop(context);
+                                        } else {
+                                          _showError(
+                                            response['data']['message'] ??
+                                                'Gagal mengirim review',
+                                          );
+                                        }
+                                      } else {
+                                        // Fallback: save locally if no orderId
+                                        final prefs =
+                                            await SharedPreferences.getInstance();
+                                        List<String> reviewsRaw =
+                                            prefs.getStringList('my_reviews') ??
+                                            [];
+
+                                        final review = {
+                                          'productName': widget.productName,
+                                          'productImage': widget.productImage,
+                                          'rating': selectedRating,
+                                          'comment': _reviewController.text
+                                              .trim(),
+                                          'date': DateTime.now()
+                                              .toIso8601String(),
+                                        };
+
+                                        reviewsRaw.add(jsonEncode(review));
+                                        await prefs.setStringList(
+                                          'my_reviews',
+                                          reviewsRaw,
+                                        );
+
+                                        setState(() {
+                                          _isSubmitting = false;
+                                        });
+
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Review berhasil disimpan!',
+                                              style: GoogleFonts.poppins(),
+                                            ),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                        Navigator.pop(context);
+                                      }
+                                    } catch (e) {
+                                      setState(() {
+                                        _isSubmitting = false;
+                                      });
+                                      _showError('Terjadi kesalahan: $e');
+                                    }
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryColor,
                               foregroundColor: Colors.white,
@@ -249,13 +318,22 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: Text(
-                              'Submit',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child: _isSubmitting
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    'Submit',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
