@@ -24,6 +24,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool isProcessing = false;
   int? selectedOutletId;
   String selectedPaymentMethod = 'CREDIT_CARD';
+  String selectedPaymentLabel = 'Transfer Bank';
+  IconData selectedPaymentIcon = Icons.account_balance;
 
   @override
   void initState() {
@@ -123,12 +125,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
         // Parse pizza ID dari item
         final pizzaId = item['id'] ?? 1;
 
+        // Ambil customization data
+        final customization = item['customization'] ?? {};
+        final sizeId = customization['sizeId'] ?? 2; // Default Medium
+        final crustId = customization['crustId'] ?? 2; // Default Regular
+        final toppingIds = List<int>.from(customization['toppingIds'] ?? []);
+        final quantity = item['quantity'] ?? 1;
+
         return {
           'pizzaId': pizzaId,
-          'sizeId': 2, // Medium (default)
-          'crustId': 2, // Regular (default)
-          'quantity': item['quantity'] ?? 1,
-          'toppingIds': [], // No toppings for now
+          'sizeId': sizeId,
+          'crustId': crustId,
+          'quantity': quantity,
+          'toppingIds': toppingIds,
+          'specialInstructions': customization['specialInstructions'] ?? '',
         };
       }).toList();
 
@@ -138,6 +148,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         alamatKirim: shippingAddress,
         items: orderItems,
         catatan: 'Order from mobile app',
+        metodeBayar: selectedPaymentMethod, // Kirim metode bayar langsung
       );
 
       if (response['success'] == true) {
@@ -270,35 +281,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     const SizedBox(height: 25),
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Ringkasan Pesanan',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: lightYellowColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Edit',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: primaryColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Ringkasan Pesanan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 15),
 
@@ -340,27 +328,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Payment Method',
+                          'Metode Pembayaran',
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: lightYellowColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Edit',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: primaryColor,
-                              fontWeight: FontWeight.w600,
+                        GestureDetector(
+                          onTap: _showPaymentMethodDialog,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: lightYellowColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Edit',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: primaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -368,33 +359,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     const SizedBox(height: 12),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Icon(Icons.credit_card, color: primaryColor),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Credit Card',
-                              style: GoogleFonts.poppins(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: lightYellowColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        Icon(selectedPaymentIcon, color: primaryColor),
+                        const SizedBox(width: 10),
+                        Flexible(
                           child: Text(
-                            '··· ··· ··· 43 /00 /000',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                            ),
+                            selectedPaymentLabel,
+                            style: GoogleFonts.poppins(fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -402,7 +374,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     const SizedBox(height: 25),
 
                     Text(
-                      'Delivery Time',
+                      'Waktu Pengiriman',
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -413,14 +385,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Estimated Delivery',
+                          'Estimasi Pengiriman',
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             color: Colors.grey[700],
                           ),
                         ),
                         Text(
-                          '25 mins',
+                          '25 menit',
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -494,5 +466,154 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _navIcon(IconData icon) {
     return Icon(icon, color: Colors.white, size: 28);
+  }
+
+  // Dialog to select payment method
+  void _showPaymentMethodDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Pilih Metode Pembayaran',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Transfer Bank
+                _buildPaymentOption(
+                  label: 'Transfer Bank',
+                  subtitle: 'BCA, BNI, Mandiri, BRI',
+                  icon: Icons.account_balance,
+                  paymentMethod: 'CREDIT_CARD',
+                  paymentLabel: 'Transfer Bank',
+                ),
+                const SizedBox(height: 10),
+                // GoPay
+                _buildPaymentOption(
+                  label: 'GoPay',
+                  subtitle: 'Bayar dengan GoPay',
+                  icon: Icons.account_balance_wallet,
+                  paymentMethod: 'CREDIT_CARD',
+                  paymentLabel: 'GoPay',
+                ),
+                const SizedBox(height: 10),
+                // OVO
+                _buildPaymentOption(
+                  label: 'OVO',
+                  subtitle: 'Bayar dengan OVO',
+                  icon: Icons.account_balance_wallet,
+                  paymentMethod: 'CREDIT_CARD',
+                  paymentLabel: 'OVO',
+                ),
+                const SizedBox(height: 10),
+                // DANA
+                _buildPaymentOption(
+                  label: 'DANA',
+                  subtitle: 'Bayar dengan DANA',
+                  icon: Icons.account_balance_wallet,
+                  paymentMethod: 'CREDIT_CARD',
+                  paymentLabel: 'DANA',
+                ),
+                const SizedBox(height: 10),
+                // ShopeePay
+                _buildPaymentOption(
+                  label: 'ShopeePay',
+                  subtitle: 'Bayar dengan ShopeePay',
+                  icon: Icons.account_balance_wallet,
+                  paymentMethod: 'CREDIT_CARD',
+                  paymentLabel: 'ShopeePay',
+                ),
+                const SizedBox(height: 10),
+                // COD
+                _buildPaymentOption(
+                  label: 'Bayar di Tempat (COD)',
+                  subtitle: 'Bayar saat pesanan tiba',
+                  icon: Icons.money,
+                  paymentMethod: 'COD',
+                  paymentLabel: 'Bayar di Tempat (COD)',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Batal',
+                style: GoogleFonts.poppins(color: Colors.grey),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Helper method to build payment option
+  Widget _buildPaymentOption({
+    required String label,
+    required String subtitle,
+    required IconData icon,
+    required String paymentMethod,
+    required String paymentLabel,
+  }) {
+    final isSelected =
+        selectedPaymentMethod == paymentMethod &&
+        selectedPaymentLabel == paymentLabel;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          selectedPaymentMethod = paymentMethod;
+          selectedPaymentLabel = paymentLabel;
+          selectedPaymentIcon = icon;
+        });
+        Navigator.pop(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: isSelected ? lightYellowColor : Colors.grey[100],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: primaryColor, size: 28),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected) Icon(Icons.check_circle, color: primaryColor),
+          ],
+        ),
+      ),
+    );
   }
 }

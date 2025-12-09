@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../theme.dart';
 import '../services/api_service.dart';
 import 'detail_screen.dart';
@@ -344,11 +345,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ClipRRect(
                                                 borderRadius:
                                                     BorderRadius.circular(15),
-                                                child: Image.network(
-                                                  bestSeller[index]['img'],
+                                                child: CachedNetworkImage(
+                                                  imageUrl:
+                                                      bestSeller[index]['img'],
                                                   width: 110,
                                                   height: 130,
                                                   fit: BoxFit.cover,
+                                                  placeholder: (context, url) =>
+                                                      Container(
+                                                        width: 110,
+                                                        height: 130,
+                                                        color: Colors.grey[200],
+                                                        child: Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                                color:
+                                                                    primaryColor,
+                                                                strokeWidth: 2,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                  errorWidget:
+                                                      (
+                                                        context,
+                                                        url,
+                                                        error,
+                                                      ) => Container(
+                                                        width: 110,
+                                                        height: 130,
+                                                        color: Colors.grey[300],
+                                                        child: Icon(
+                                                          Icons.error,
+                                                          color: Colors.red,
+                                                        ),
+                                                      ),
                                                 ),
                                               ),
                                               Positioned(
@@ -466,9 +496,32 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     bottomRight:
                                                         Radius.circular(20),
                                                   ),
-                                              child: Image.network(
-                                                'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop',
+                                              child: CachedNetworkImage(
+                                                imageUrl:
+                                                    'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=400&auto=format&fit=crop',
                                                 fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    Container(
+                                                      color: Colors.grey[200],
+                                                      child: Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              color:
+                                                                  primaryColor,
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        Container(
+                                                          color:
+                                                              Colors.grey[300],
+                                                          child: Icon(
+                                                            Icons.error,
+                                                            color: Colors.red,
+                                                          ),
+                                                        ),
                                               ),
                                             ),
                                           ),
@@ -527,11 +580,39 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ClipRRect(
                                                 borderRadius:
                                                     BorderRadius.circular(15),
-                                                child: Image.network(
-                                                  item['img'],
+                                                child: CachedNetworkImage(
+                                                  imageUrl: item['img'],
                                                   height: 180,
                                                   width: double.infinity,
                                                   fit: BoxFit.cover,
+                                                  placeholder: (context, url) =>
+                                                      Container(
+                                                        height: 180,
+                                                        width: double.infinity,
+                                                        color: Colors.grey[200],
+                                                        child: Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                                color:
+                                                                    primaryColor,
+                                                                strokeWidth: 2,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                  errorWidget:
+                                                      (
+                                                        context,
+                                                        url,
+                                                        error,
+                                                      ) => Container(
+                                                        height: 180,
+                                                        width: double.infinity,
+                                                        color: Colors.grey[300],
+                                                        child: Icon(
+                                                          Icons.error,
+                                                          color: Colors.red,
+                                                        ),
+                                                      ),
                                                 ),
                                               ),
                                               Positioned(

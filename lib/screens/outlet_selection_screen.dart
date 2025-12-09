@@ -5,10 +5,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import '../models/outlet.dart';
+import '../services/api_service.dart';
 import 'payment_screen.dart';
 
 class OutletSelectionScreen extends StatefulWidget {
-  const OutletSelectionScreen({super.key});
+  final double? userLat;
+  final double? userLon;
+
+  const OutletSelectionScreen({super.key, this.userLat, this.userLon});
 
   @override
   State<OutletSelectionScreen> createState() => _OutletSelectionScreenState();
@@ -20,51 +24,56 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
   bool isLoading = true;
   bool showAllOutlets = false;
 
-  // Pizza Hut outlets in Malang around Universitas Brawijaya
+  // Fallback dummy outlets (match database structure)
   final List<Outlet> _dummyOutlets = [
     Outlet(
-      id: '1',
+      id: 1,
+      outletCode: 'PZ-DNY01',
       nama: 'Pizza Hut Dinoyo',
       alamat: 'Jl. MT. Haryono No. 165, Dinoyo, Malang',
-      latitude: -7.9448,
-      longitude: 112.6151,
-      telepon: '(0341) 551234',
+      latitude: -7.956567,
+      longitude: 112.617829,
+      telepon: '0341-12345678',
       jamOperasional: '10:00 - 22:00',
     ),
     Outlet(
-      id: '2',
+      id: 2,
+      outletCode: 'PZ-SHT02',
       nama: 'Pizza Hut Soekarno Hatta',
       alamat: 'Jl. Soekarno Hatta No. 1A, Malang',
-      latitude: -7.9553,
-      longitude: 112.6214,
-      telepon: '(0341) 552345',
+      latitude: -7.966620,
+      longitude: 112.632632,
+      telepon: '0341-23456789',
       jamOperasional: '10:00 - 22:00',
     ),
     Outlet(
-      id: '3',
+      id: 3,
+      outletCode: 'PZ-VET03',
       nama: 'Pizza Hut Veteran',
       alamat: 'Jl. Veteran No. 23, Malang',
-      latitude: -7.9526,
-      longitude: 112.6195,
-      telepon: '(0341) 553456',
-      jamOperasional: '10:00 - 23:00',
-    ),
-    Outlet(
-      id: '4',
-      nama: 'Pizza Hut Dieng',
-      alamat: 'Jl. Raya Dieng No. 50, Malang',
-      latitude: -7.9395,
-      longitude: 112.6247,
-      telepon: '(0341) 554567',
+      latitude: -7.952479,
+      longitude: 112.614647,
+      telepon: '0341-34567890',
       jamOperasional: '10:00 - 22:00',
     ),
     Outlet(
-      id: '5',
+      id: 4,
+      outletCode: 'PZ-DNG04',
+      nama: 'Pizza Hut Dieng',
+      alamat: 'Jl. Raya Dieng No. 50, Malang',
+      latitude: -7.938889,
+      longitude: 112.616667,
+      telepon: '0341-45678901',
+      jamOperasional: '10:00 - 22:00',
+    ),
+    Outlet(
+      id: 5,
+      outletCode: 'PZ-TLG05',
       nama: 'Pizza Hut Tlogomas',
       alamat: 'Jl. Tlogomas No. 45, Malang',
-      latitude: -7.9289,
-      longitude: 112.6089,
-      telepon: '(0341) 555678',
+      latitude: -7.930000,
+      longitude: 112.600000,
+      telepon: '0341-56789012',
       jamOperasional: '10:00 - 22:00',
     ),
   ];
@@ -78,11 +87,57 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
   Future<void> _loadOutletTerdekat() async {
     setState(() => isLoading = true);
 
-    // User location around Universitas Brawijaya, Malang
-    double userLat = -7.9553;
-    double userLon = 112.6141;
+    try {
+      // Fetch outlets from backend API
+      final response = await ApiService.getOutlets();
 
-    // Calculate distance for all outlets using Haversine formula
+      if (response['success'] == true) {
+        final data = response['data'];
+        final List<dynamic> outletList = data['data'] ?? [];
+
+        // Get user location from widget parameter or default
+        double userLat = widget.userLat ?? -7.9553; // Default FILKOM UB
+        double userLon = widget.userLon ?? 112.6141;
+
+        // Parse outlets from API and calculate distance
+        outlets = outletList.map((item) {
+          final outlet = Outlet.fromJson(item);
+          double jarak = _hitungJarakHaversine(
+            userLat,
+            userLon,
+            outlet.latitude,
+            outlet.longitude,
+          );
+          return outlet.copyWith(jarak: jarak);
+        }).toList();
+
+        // Sort by nearest distance
+        outlets.sort((a, b) => a.jarak.compareTo(b.jarak));
+
+        // Select nearest outlet by default
+        if (outlets.isNotEmpty) {
+          selectedOutlet = outlets.first;
+        }
+      } else {
+        // Fallback to dummy data if API fails
+        print('⚠️ Failed to fetch outlets from API, using fallback data');
+        _useFallbackOutlets();
+      }
+    } catch (e) {
+      // Fallback to dummy data on error
+      print('❌ Error fetching outlets: $e');
+      _useFallbackOutlets();
+    }
+
+    setState(() => isLoading = false);
+  }
+
+  void _useFallbackOutlets() {
+    // Get user location
+    double userLat = widget.userLat ?? -7.9553;
+    double userLon = widget.userLon ?? 112.6141;
+
+    // Use dummy data as fallback
     outlets = _dummyOutlets.map((outlet) {
       double jarak = _hitungJarakHaversine(
         userLat,
@@ -93,13 +148,15 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
       return outlet.copyWith(jarak: jarak);
     }).toList();
 
-    // Sort by nearest distance
     outlets.sort((a, b) => a.jarak.compareTo(b.jarak));
+    if (outlets.isNotEmpty) {
+      selectedOutlet = outlets.first;
+    }
+  }
 
-    // Auto-select nearest outlet
-    selectedOutlet = outlets.first;
+  Future<void> _saveSelectedOutlet() async {
+    if (selectedOutlet == null) return;
 
-    // Save selected outlet
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       'selected_outlet',
@@ -110,8 +167,8 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
       }),
     );
 
-    // Save outlet ID for backend API
-    await prefs.setString('selected_outlet_id', selectedOutlet!.id);
+    // Save outlet ID for backend API (convert int to String)
+    await prefs.setString('selected_outlet_id', selectedOutlet!.id.toString());
 
     setState(() => isLoading = false);
   }
@@ -161,8 +218,8 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
       }),
     );
 
-    // Save outlet ID for backend API (convert string to int)
-    await prefs.setString('selected_outlet_id', outlet.id);
+    // Save outlet ID for backend API (convert int to String)
+    await prefs.setString('selected_outlet_id', outlet.id.toString());
 
     setState(() {
       selectedOutlet = outlet;

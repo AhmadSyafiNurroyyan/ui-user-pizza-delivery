@@ -320,6 +320,24 @@ class ApiService {
     });
   }
 
+  /// Change Password (untuk user yang sudah login - tanpa email/token)
+  /// POST /api/auth/change-password
+  static Future<Map<String, dynamic>> changePassword({
+    required String email,
+    required String passwordBaru,
+    required String konfirmasiPassword,
+  }) async {
+    return await post(
+      '/api/auth/change-password',
+      {
+        'email': email,
+        'passwordBaru': passwordBaru,
+        'konfirmasiPassword': konfirmasiPassword,
+      },
+      requiresAuth: false, // Tidak butuh JWT token, pakai email langsung
+    );
+  }
+
   // ============================================
   // API METHODS - MENU
   // ============================================
@@ -328,6 +346,16 @@ class ApiService {
   /// GET /api/menu
   static Future<Map<String, dynamic>> getMenu() async {
     return await get('/api/menu');
+  }
+
+  // ============================================
+  // API METHODS - OUTLETS
+  // ============================================
+
+  /// Get semua outlets
+  /// GET /api/outlets
+  static Future<Map<String, dynamic>> getOutlets() async {
+    return await get('/api/outlets');
   }
 
   // ============================================
@@ -341,12 +369,14 @@ class ApiService {
     required String alamatKirim,
     required List<Map<String, dynamic>> items,
     String? catatan,
+    String? metodeBayar,
   }) async {
     return await post('/api/orders', {
-      'outletId': outletId,
+      'idOutlet': outletId, // Backend expect 'idOutlet', bukan 'outletId'
       'alamatKirim': alamatKirim,
       'items': items,
       if (catatan != null && catatan.isNotEmpty) 'catatan': catatan,
+      if (metodeBayar != null) 'metodeBayar': metodeBayar,
     }, requiresAuth: true);
   }
 

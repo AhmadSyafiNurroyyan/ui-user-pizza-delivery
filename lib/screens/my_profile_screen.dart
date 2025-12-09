@@ -31,9 +31,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       try {
         final Map<String, dynamic> user = jsonDecode(raw);
         setState(() {
-          name = user['name'] ?? '';
+          name = user['nama'] ?? user['name'] ?? '';
           email = user['email'] ?? '';
-          mobile = user['mobile'] ?? '';
+          mobile = user['noHp'] ?? user['mobile'] ?? '';
           dob = user['dob'] ?? '';
         });
       } catch (_) {}

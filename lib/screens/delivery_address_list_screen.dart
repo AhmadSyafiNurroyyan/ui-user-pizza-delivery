@@ -45,12 +45,21 @@ class _DeliveryAddressListScreenState extends State<DeliveryAddressListScreen> {
         {
           'label': 'Gedung FILKOM',
           'address': 'Jl. Veteran, Ketawanggede, Kec. Lowokwaru, Malang',
+          'latitude': -7.9553,
+          'longitude': 112.6141,
         },
         {
           'label': 'Kost Dinoyo',
           'address': 'Jl. Sumbersari No. 45, Dinoyo, Malang',
+          'latitude': -7.9470,
+          'longitude': 112.6160,
         },
-        {'label': 'Kost Zupen', 'address': 'Jl. Soekarno Hatta No. 20, Malang'},
+        {
+          'label': 'Kost Zupen',
+          'address': 'Jl. Soekarno Hatta No. 20, Malang',
+          'latitude': -7.9600,
+          'longitude': 112.6220,
+        },
       ];
       await _saveAddresses();
       setState(() {});
@@ -78,14 +87,20 @@ class _DeliveryAddressListScreenState extends State<DeliveryAddressListScreen> {
       jsonEncode(addresses[index]),
     );
 
+    // Extract latitude and longitude from selected address
+    final selectedAddress = addresses[index];
+    final double? lat = selectedAddress['latitude'] as double?;
+    final double? lon = selectedAddress['longitude'] as double?;
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const OutletSelectionScreen()),
+      MaterialPageRoute(
+        builder: (context) => OutletSelectionScreen(userLat: lat, userLon: lon),
+      ),
     );
   }
 
   Future<void> _editAddress(int index) async {
-
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -184,7 +199,6 @@ class _DeliveryAddressListScreenState extends State<DeliveryAddressListScreen> {
                             ),
                             child: Row(
                               children: [
-
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(

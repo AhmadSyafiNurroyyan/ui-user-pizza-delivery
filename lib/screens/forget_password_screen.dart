@@ -18,8 +18,6 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   bool _isLoading = false;
-  bool _emailSent = false;
-  String? _resetToken;
 
   @override
   void dispose() {
@@ -29,60 +27,9 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
     super.dispose();
   }
 
-  Future<void> _requestResetToken() async {
-    if (_emailController.text.trim().isEmpty) {
-      _showError('Email tidak boleh kosong');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final response = await ApiService.forgotPassword(
-        email: _emailController.text.trim(),
-      );
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (response['success'] == true) {
-        final data = response['data'];
-        // Backend returns token in response for testing
-        // In production, token would be sent via email
-        final token = data['data']?['resetToken'];
-
-        setState(() {
-          _emailSent = true;
-          _resetToken = token;
-        });
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              data['message'] ??
-                  'Link reset password telah dikirim ke email Anda',
-              style: GoogleFonts.poppins(),
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        _showError(response['data']['message'] ?? 'Gagal mengirim email reset');
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      _showError('Terjadi kesalahan: $e');
-    }
-  }
-
-  Future<void> _resetPassword() async {
-    if (_passwordController.text.isEmpty ||
+  Future<void> _changePassword() async {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
       _showError('Mohon isi semua field');
       return;
@@ -98,19 +45,15 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
       return;
     }
 
-    if (_resetToken == null) {
-      _showError('Token reset tidak valid');
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final response = await ApiService.resetPassword(
-        token: _resetToken!,
-        newPassword: _passwordController.text.trim(),
+      final response = await ApiService.changePassword(
+        email: _emailController.text.trim(),
+        passwordBaru: _passwordController.text.trim(),
+        konfirmasiPassword: _confirmPasswordController.text.trim(),
       );
 
       setState(() {
@@ -122,7 +65,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Password berhasil direset!',
+              'Password berhasil diubah!',
               style: GoogleFonts.poppins(),
             ),
             backgroundColor: Colors.green,
@@ -130,7 +73,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
         );
         Navigator.pop(context);
       } else {
-        _showError(response['data']['message'] ?? 'Gagal reset password');
+        _showError(response['data']['pesan'] ?? 'Gagal mengubah password');
       }
     } catch (e) {
       setState(() {
@@ -190,11 +133,8 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 10),
-
                     Text(
-                      _emailSent
-                          ? 'Mohon masukkan password baru untuk akun Kamu'
-                          : 'Masukkan email Anda untuk menerima link reset password',
+                      'Masukkan email dan password baru untuk akun Anda',
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         color: Colors.grey[700],
@@ -203,122 +143,119 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    // Email field (shown only before token sent)
-                    if (!_emailSent) ...[
-                      Text(
-                        'Email',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          hintText: 'emailkamu@gmail.com',
-                          hintStyle: GoogleFonts.poppins(color: Colors.grey),
-                          filled: true,
-                          fillColor: lightYellowColor,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 18,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-
-                    // Password fields (shown only after token sent)
-                    if (_emailSent) ...[
-
+                    // Email field
                     Text(
-                      'Password',
+                      'Email',
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          hintText: '**************',
-                          hintStyle: GoogleFonts.poppins(color: Colors.grey),
-                          filled: true,
-                          fillColor: lightYellowColor,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: primaryColor,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 18,
-                          ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        hintText: 'emailkamu@gmail.com',
+                        hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                        filled: true,
+                        fillColor: lightYellowColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 20),
 
-                      Text(
-                        'Konfirmasi Password',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                    // Password fields
+                    Text(
+                      'Password Baru',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        hintText: '**************',
+                        hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                        filled: true,
+                        fillColor: lightYellowColor,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: primaryColor,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _confirmPasswordController,
-                        obscureText: _obscureConfirmPassword,
-                        decoration: InputDecoration(
-                          hintText: '**************',
-                          hintStyle: GoogleFonts.poppins(color: Colors.grey),
-                          filled: true,
-                          fillColor: lightYellowColor,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureConfirmPassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: primaryColor,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscureConfirmPassword =
-                                    !_obscureConfirmPassword;
-                              });
-                            },
+                    ),
+                    const SizedBox(height: 20),
+
+                    Text(
+                      'Konfirmasi Password',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      decoration: InputDecoration(
+                        hintText: '**************',
+                        hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                        filled: true,
+                        fillColor: lightYellowColor,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: primaryColor,
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 18,
-                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                            });
+                          },
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
                         ),
                       ),
-                      const SizedBox(height: 40),
-                    ],
+                    ),
+                    const SizedBox(height: 40),
 
                     Center(
                       child: SizedBox(
@@ -333,11 +270,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          onPressed: _isLoading
-                              ? null
-                              : (_emailSent
-                                    ? _resetPassword
-                                    : _requestResetToken),
+                          onPressed: _isLoading ? null : _changePassword,
                           child: _isLoading
                               ? const SizedBox(
                                   height: 24,
@@ -348,9 +281,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                                   ),
                                 )
                               : Text(
-                                  _emailSent
-                                      ? 'Reset Password'
-                                      : 'Kirim Email Reset',
+                                  'Ubah Password',
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,

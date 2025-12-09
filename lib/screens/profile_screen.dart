@@ -34,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       try {
         final Map<String, dynamic> user = jsonDecode(raw);
         setState(() {
-          userName = user['name'] ?? 'John Smith';
+          userName = user['nama'] ?? user['name'] ?? 'John Smith';
           userEmail = user['email'] ?? 'Loremipsum@email.com';
         });
       } catch (_) {}
@@ -58,7 +58,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-
                 Container(
                   width: 60,
                   height: 30,
@@ -152,7 +151,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       body: Stack(
         children: [
-
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -166,7 +164,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     IconButton(
                       icon: const Icon(
                         Icons.arrow_back_ios,

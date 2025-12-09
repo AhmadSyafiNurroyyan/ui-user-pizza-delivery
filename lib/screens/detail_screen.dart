@@ -16,32 +16,42 @@ class _DetailScreenState extends State<DetailScreen> {
   bool isFavorite = false;
 
   String selectedSize = 'Medium';
-  String selectedCrust = 'Pan Pizza';
+  int selectedSizeId = 2; // ID dari database
+  String selectedCrust = 'Regular';
+  int selectedCrustId = 2; // ID dari database
   List<String> selectedToppings = [];
+  List<int> selectedToppingIds = [];
   String specialInstructions = '';
 
+  // Data sizes yang MATCH 100% dengan database
   final List<Map<String, dynamic>> sizes = [
-    {'name': 'Small', 'price': 0},
-    {'name': 'Medium', 'price': 15000},
-    {'name': 'Large', 'price': 30000},
+    {'id': 1, 'name': 'Small', 'price': 0, 'multiplier': 1.0},
+    {'id': 2, 'name': 'Medium', 'price': 0, 'multiplier': 1.5},
+    {'id': 3, 'name': 'Large', 'price': 0, 'multiplier': 2.0},
+    {'id': 4, 'name': 'Extra Large', 'price': 0, 'multiplier': 2.5},
   ];
 
+  // Data crusts yang MATCH 100% dengan database
   final List<Map<String, dynamic>> crusts = [
-    {'name': 'Pan Pizza', 'price': 0},
-    {'name': 'Thin Crust', 'price': 5000},
-    {'name': 'Stuffed Crust', 'price': 15000},
-    {'name': 'Cheese Burst', 'price': 20000},
+    {'id': 1, 'name': 'Thin Crust', 'price': 0},
+    {'id': 2, 'name': 'Regular', 'price': 5000},
+    {'id': 3, 'name': 'Thick Crust', 'price': 10000},
+    {'id': 4, 'name': 'Stuffed Crust', 'price': 15000},
+    {'id': 5, 'name': 'Cheese Burst', 'price': 20000},
   ];
 
+  // Data toppings yang MATCH 100% dengan database
   final List<Map<String, dynamic>> toppings = [
-    {'name': 'Extra Cheese', 'price': 10000},
-    {'name': 'Pepperoni', 'price': 12000},
-    {'name': 'Mushroom', 'price': 8000},
-    {'name': 'Onion', 'price': 5000},
-    {'name': 'Bell Pepper', 'price': 7000},
-    {'name': 'Olives', 'price': 8000},
-    {'name': 'Sausage', 'price': 12000},
-    {'name': 'Bacon', 'price': 15000},
+    {'id': 1, 'name': 'Extra Cheese', 'price': 10000},
+    {'id': 2, 'name': 'Pepperoni', 'price': 15000},
+    {'id': 3, 'name': 'Mushroom', 'price': 8000},
+    {'id': 4, 'name': 'Black Olives', 'price': 8000},
+    {'id': 5, 'name': 'Green Peppers', 'price': 7000},
+    {'id': 6, 'name': 'Onions', 'price': 5000},
+    {'id': 7, 'name': 'Italian Sausage', 'price': 15000},
+    {'id': 8, 'name': 'Bacon', 'price': 15000},
+    {'id': 9, 'name': 'Pineapple', 'price': 10000},
+    {'id': 10, 'name': 'Jalapeños', 'price': 8000},
   ];
 
   @override
@@ -51,28 +61,34 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   int _calculateTotalPrice() {
+    // Parse base price dari widget
+    final basePrice =
+        widget.item['priceNum'] ??
+        int.parse(
+          widget.item['price']
+              .toString()
+              .replaceAll('Rp', '')
+              .replaceAll(' ', '')
+              .replaceAll('.', ''),
+        );
 
-    final basePrice = int.parse(
-      widget.item['price']
-          .toString()
-          .replaceAll('Rp', '')
-          .replaceAll(' ', '')
-          .replaceAll('.', ''),
-    );
+    // Size menggunakan multiplier (sesuai database)
+    final sizeData = sizes.firstWhere((s) => s['name'] == selectedSize);
+    final sizeMultiplier = sizeData['multiplier'] as double;
+    final sizeAdjustedPrice = (basePrice * sizeMultiplier).toInt();
 
-    final sizePrice =
-        sizes.firstWhere((s) => s['name'] == selectedSize)['price'] as int;
-
+    // Crust additional price
     final crustPrice =
         crusts.firstWhere((c) => c['name'] == selectedCrust)['price'] as int;
 
+    // Toppings total price
     int toppingsPrice = 0;
     for (var topping in selectedToppings) {
       toppingsPrice +=
           toppings.firstWhere((t) => t['name'] == topping)['price'] as int;
     }
 
-    return basePrice + sizePrice + crustPrice + toppingsPrice;
+    return sizeAdjustedPrice + crustPrice + toppingsPrice;
   }
 
   String _formatPrice(int price) {
@@ -108,7 +124,6 @@ class _DetailScreenState extends State<DetailScreen> {
         .toList();
 
     if (isFavorite) {
-
       favorites.removeWhere((item) => item['name'] == widget.item['name']);
       setState(() {
         isFavorite = false;
@@ -123,7 +138,6 @@ class _DetailScreenState extends State<DetailScreen> {
         );
       }
     } else {
-
       final favoriteItem = {
         'name': widget.item['name'],
         'price': widget.item['price'],
@@ -165,14 +179,18 @@ class _DetailScreenState extends State<DetailScreen> {
     }
 
     final customizedItem = {
+      'id': widget.item['id'], // Pizza ID dari database
       'name': widget.item['name'],
       'price': _formatPrice(_calculateTotalPrice()),
       'img': widget.item['img'],
       'quantity': 1,
       'customization': {
         'size': selectedSize,
+        'sizeId': selectedSizeId,
         'crust': selectedCrust,
+        'crustId': selectedCrustId,
         'toppings': selectedToppings,
+        'toppingIds': selectedToppingIds,
         'specialInstructions': specialInstructions,
       },
     };
@@ -192,11 +210,9 @@ class _DetailScreenState extends State<DetailScreen> {
     );
 
     if (existingIndex >= 0) {
-
       cartItems[existingIndex]['quantity'] =
           (cartItems[existingIndex]['quantity'] ?? 1) + 1;
     } else {
-
       cartItems.add(customizedItem);
     }
 
@@ -332,7 +348,6 @@ class _DetailScreenState extends State<DetailScreen> {
                         ),
                         child: Row(
                           children: [
-
                             Expanded(
                               flex: 2,
                               child: Column(
@@ -597,6 +612,7 @@ class _DetailScreenState extends State<DetailScreen> {
               onSelected: (selected) {
                 setState(() {
                   selectedSize = size['name'];
+                  selectedSizeId = size['id'];
                 });
               },
               selectedColor: primaryColor,
@@ -640,6 +656,7 @@ class _DetailScreenState extends State<DetailScreen> {
               onSelected: (selected) {
                 setState(() {
                   selectedCrust = crust['name'];
+                  selectedCrustId = crust['id'];
                 });
               },
               selectedColor: primaryColor,
@@ -684,8 +701,10 @@ class _DetailScreenState extends State<DetailScreen> {
                 setState(() {
                   if (selected) {
                     selectedToppings.add(topping['name']);
+                    selectedToppingIds.add(topping['id']);
                   } else {
                     selectedToppings.remove(topping['name']);
+                    selectedToppingIds.remove(topping['id']);
                   }
                 });
               },
