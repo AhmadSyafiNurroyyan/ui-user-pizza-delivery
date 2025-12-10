@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import '../theme.dart';
 import '../services/api_service.dart';
 
 class LeaveReviewScreen extends StatefulWidget {
   final String productName;
   final String productImage;
-  final int? orderId; // Order ID for backend API
+  final int orderId; // Order ID untuk backend API (wajib)
 
   const LeaveReviewScreen({
     super.key,
     required this.productName,
     required this.productImage,
-    this.orderId, // Optional, null if reviewing without order
+    required this.orderId, // Wajib ada orderId
   });
 
   @override
@@ -227,81 +225,38 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                                     });
 
                                     try {
-                                      // If orderId provided, submit to backend API
-                                      if (widget.orderId != null) {
-                                        final response =
-                                            await ApiService.submitReview(
-                                              orderId: widget.orderId!,
-                                              rating: selectedRating,
-                                              komentar: _reviewController.text
-                                                  .trim(),
-                                            );
+                                      // Submit review ke backend API
+                                      final response =
+                                          await ApiService.submitReview(
+                                        orderId: widget.orderId,
+                                        rating: selectedRating,
+                                        komentar: _reviewController.text.trim(),
+                                      );
 
-                                        setState(() {
-                                          _isSubmitting = false;
-                                        });
+                                      setState(() {
+                                        _isSubmitting = false;
+                                      });
 
-                                        if (response['success'] == true) {
-                                          if (!mounted) return;
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Review berhasil dikirim!',
-                                                style: GoogleFonts.poppins(),
-                                              ),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                          Navigator.pop(context);
-                                        } else {
-                                          _showError(
-                                            response['data']['message'] ??
-                                                'Gagal mengirim review',
-                                          );
-                                        }
-                                      } else {
-                                        // Fallback: save locally if no orderId
-                                        final prefs =
-                                            await SharedPreferences.getInstance();
-                                        List<String> reviewsRaw =
-                                            prefs.getStringList('my_reviews') ??
-                                            [];
-
-                                        final review = {
-                                          'productName': widget.productName,
-                                          'productImage': widget.productImage,
-                                          'rating': selectedRating,
-                                          'comment': _reviewController.text
-                                              .trim(),
-                                          'date': DateTime.now()
-                                              .toIso8601String(),
-                                        };
-
-                                        reviewsRaw.add(jsonEncode(review));
-                                        await prefs.setStringList(
-                                          'my_reviews',
-                                          reviewsRaw,
-                                        );
-
-                                        setState(() {
-                                          _isSubmitting = false;
-                                        });
-
+                                      if (response['success'] == true) {
                                         if (!mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              'Review berhasil disimpan!',
+                                              'Review berhasil dikirim!',
                                               style: GoogleFonts.poppins(),
                                             ),
                                             backgroundColor: Colors.green,
+                                            duration: const Duration(seconds: 2),
                                           ),
                                         );
                                         Navigator.pop(context);
+                                      } else {
+                                        _showError(
+                                          response['data']['pesan'] ??
+                                              response['data']['message'] ??
+                                              'Gagal mengirim review',
+                                        );
                                       }
                                     } catch (e) {
                                       setState(() {

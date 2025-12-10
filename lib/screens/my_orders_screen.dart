@@ -190,13 +190,15 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         final menuName = item['menuName'] ?? item['namaMenu'] ?? 'Pizza';
         final price = item['price'] ?? item['harga'] ?? 0;
         final quantity = item['quantity'] ?? item['jumlah'] ?? 1;
-        final imageUrl = item['imageUrl'] ??
+        final imageUrl =
+            item['imageUrl'] ??
             item['gambar'] ??
             'https://images.unsplash.com/photo-1513104890138-7c749659a591';
 
         // Check if item already exists in cart
-        final existingIndex =
-            cartItems.indexWhere((cartItem) => cartItem['id'] == menuId);
+        final existingIndex = cartItems.indexWhere(
+          (cartItem) => cartItem['id'] == menuId,
+        );
 
         if (existingIndex != -1) {
           // Update quantity
