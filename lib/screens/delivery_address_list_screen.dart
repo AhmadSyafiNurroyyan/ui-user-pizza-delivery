@@ -51,14 +51,14 @@ class _DeliveryAddressListScreenState extends State<DeliveryAddressListScreen> {
         {
           'label': 'Kost Dinoyo',
           'address': 'Jl. Sumbersari No. 45, Dinoyo, Malang',
-          'latitude': -7.9470,
-          'longitude': 112.6160,
+          'latitude': -7.9580,
+          'longitude': 112.6190,
         },
         {
           'label': 'Kost Zupen',
           'address': 'Jl. Soekarno Hatta No. 20, Malang',
-          'latitude': -7.9600,
-          'longitude': 112.6220,
+          'latitude': -7.9670,
+          'longitude': 112.6310,
         },
       ];
       await _saveAddresses();

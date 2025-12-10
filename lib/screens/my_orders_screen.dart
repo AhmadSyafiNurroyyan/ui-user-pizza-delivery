@@ -35,28 +35,42 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     try {
       final response = await ApiService.getMyOrders();
 
-      if (response['success'] == true) {
-        final data = response['data'];
-        final List<dynamic> orders = data['data'] ?? [];
+      print('📦 My Orders Response: $response');
+
+      if (response['success'] == true || response['status'] == 'sukses') {
+        // ApiService wraps backend response: {success: true, data: {status: "sukses", data: [...]}}
+        // Extract the actual data array
+        var dataWrapper = response['data'];
+        final List<dynamic> orders = (dataWrapper is List)
+            ? dataWrapper
+            : (dataWrapper['data'] ?? []);
+
+        print('✅ Found ${orders.length} orders');
 
         List<Map<String, dynamic>> active = [];
         List<Map<String, dynamic>> completed = [];
         List<Map<String, dynamic>> cancelled = [];
 
         for (var order in orders) {
+          print(
+            '🔍 Processing order: ${order['idPesanan']} - Status: ${order['statusPesanan']}',
+          );
+
           final orderData = {
             'id': order['idPesanan'],
-            'orderNumber': order['orderNumber'] ?? '',
+            'orderNumber': order['orderNumber'] ?? 'ORD-${order['idPesanan']}',
             'name': order['customerName'] ?? 'Order',
-            'date': _formatDate(order['tanggalPesan']),
+            'date': _formatDate(
+              order['tanggalPemesanan'] ?? order['tanggalPesan'],
+            ),
             'price': 'Rp ${_formatPrice(order['totalHarga'])}',
             'status': order['statusPesanan'] ?? 'PENDING',
             'items': '${order['items']?.length ?? 0} items',
-            'img': order['items']?.isNotEmpty
+            'img': (order['items'] != null && order['items'].isNotEmpty)
                 ? (order['items'][0]['imageUrl'] ??
                       'https://images.unsplash.com/photo-1513104890138-7c749659a591')
                 : 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
-            'canReview': order['opsiUlasan'] ?? false,
+            'canReview': order['opsiUlasan'] == true,
           };
 
           // Categorize by status
@@ -69,6 +83,14 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           }
         }
 
+        print(
+          '📊 Active: ${active.length}, Completed: ${completed.length}, Cancelled: ${cancelled.length}',
+        );
+
+        print(
+          '📊 Active: ${active.length}, Completed: ${completed.length}, Cancelled: ${cancelled.length}',
+        );
+
         setState(() {
           activeOrders = active;
           completedOrders = completed;
@@ -76,11 +98,15 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           isLoading = false;
         });
       } else {
+        print(
+          '❌ Failed to load orders: ${response['pesan'] ?? response['message']}',
+        );
         setState(() {
           isLoading = false;
         });
       }
     } catch (e) {
+      print('❌ Error loading orders: $e');
       setState(() {
         isLoading = false;
       });

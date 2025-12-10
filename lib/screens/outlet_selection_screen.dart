@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import '../models/outlet.dart';
 import '../services/api_service.dart';
-import 'payment_screen.dart';
+import 'confirm_order_screen.dart';
 
 class OutletSelectionScreen extends StatefulWidget {
   final double? userLat;
@@ -88,16 +88,18 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
     setState(() => isLoading = true);
 
     try {
+      // Get user location from widget parameter or default
+      double userLat = widget.userLat ?? -7.9553; // Default FILKOM UB
+      double userLon = widget.userLon ?? 112.6141;
+
+      print('📍 User Location: Lat=$userLat, Lon=$userLon');
+
       // Fetch outlets from backend API
       final response = await ApiService.getOutlets();
 
       if (response['success'] == true) {
         final data = response['data'];
         final List<dynamic> outletList = data['data'] ?? [];
-
-        // Get user location from widget parameter or default
-        double userLat = widget.userLat ?? -7.9553; // Default FILKOM UB
-        double userLon = widget.userLon ?? 112.6141;
 
         // Parse outlets from API and calculate distance
         outlets = outletList.map((item) {
@@ -108,6 +110,7 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
             outlet.latitude,
             outlet.longitude,
           );
+          print('🏪 ${outlet.nama}: ${jarak.toStringAsFixed(2)} km');
           return outlet.copyWith(jarak: jarak);
         }).toList();
 
@@ -117,6 +120,9 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
         // Select nearest outlet by default
         if (outlets.isNotEmpty) {
           selectedOutlet = outlets.first;
+          print(
+            '✅ Selected: ${selectedOutlet!.nama} (${selectedOutlet!.jarak.toStringAsFixed(2)} km)',
+          );
         }
       } else {
         // Fallback to dummy data if API fails
@@ -137,6 +143,8 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
     double userLat = widget.userLat ?? -7.9553;
     double userLon = widget.userLon ?? 112.6141;
 
+    print('📍 Using Fallback - User Location: Lat=$userLat, Lon=$userLon');
+
     // Use dummy data as fallback
     outlets = _dummyOutlets.map((outlet) {
       double jarak = _hitungJarakHaversine(
@@ -145,12 +153,16 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
         outlet.latitude,
         outlet.longitude,
       );
+      print('🏪 ${outlet.nama}: ${jarak.toStringAsFixed(2)} km');
       return outlet.copyWith(jarak: jarak);
     }).toList();
 
     outlets.sort((a, b) => a.jarak.compareTo(b.jarak));
     if (outlets.isNotEmpty) {
       selectedOutlet = outlets.first;
+      print(
+        '✅ Selected: ${selectedOutlet!.nama} (${selectedOutlet!.jarak.toStringAsFixed(2)} km)',
+      );
     }
   }
 
@@ -164,6 +176,8 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
         'id': selectedOutlet!.id,
         'nama': selectedOutlet!.nama,
         'alamat': selectedOutlet!.alamat,
+        'jarak':
+            selectedOutlet!.jarak, // Save distance for delivery fee calculation
       }),
     );
 
@@ -215,6 +229,7 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
         'id': outlet.id,
         'nama': outlet.nama,
         'alamat': outlet.alamat,
+        'jarak': outlet.jarak, // Save distance for delivery fee calculation
       }),
     );
 
@@ -226,10 +241,14 @@ class _OutletSelectionScreenState extends State<OutletSelectionScreen> {
     });
   }
 
-  void _lanjutKePayment() {
+  void _lanjutKePayment() async {
+    // Save outlet before navigating
+    await _saveSelectedOutlet();
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const PaymentScreen()),
+      MaterialPageRoute(builder: (context) => const ConfirmOrderScreen()),
     );
   }
 

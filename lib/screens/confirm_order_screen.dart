@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
+import '../services/api_service.dart';
 import 'order_confirmation_screen.dart';
 import 'order_cancelled_screen.dart';
 
@@ -19,7 +20,14 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
   double subtotal = 0;
   double tax = 0;
   double delivery = 15000;
+  double outletDistance = 0.0; // Jarak outlet dalam km
   double total = 0;
+  bool isProcessing = false;
+  int? selectedOutletId;
+  String? selectedOutletName;
+  String selectedPaymentMethod = 'BANK_TRANSFER';
+  String selectedPaymentLabel = 'Transfer Bank';
+  IconData selectedPaymentIcon = Icons.account_balance;
 
   @override
   void initState() {
@@ -29,6 +37,28 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Load selected outlet
+    final outletIdStr = prefs.getString('selected_outlet_id');
+    if (outletIdStr != null) {
+      setState(() {
+        selectedOutletId = int.tryParse(outletIdStr);
+      });
+    }
+
+    final selectedOutletRaw = prefs.getString('selected_outlet');
+    if (selectedOutletRaw != null) {
+      try {
+        final Map<String, dynamic> outletData = jsonDecode(selectedOutletRaw);
+        setState(() {
+          selectedOutletName = outletData['nama'];
+          // Load jarak outlet (dalam km)
+          outletDistance = (outletData['jarak'] ?? 2.0) as double;
+          // Calculate dynamic delivery fee
+          _calculateDeliveryFee();
+        });
+      } catch (_) {}
+    }
 
     final selectedAddressRaw = prefs.getString('selected_delivery_address');
     if (selectedAddressRaw != null) {
@@ -79,6 +109,27 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
       subtotal = sub;
       tax = sub * 0.1;
       total = subtotal + tax + delivery;
+    });
+  }
+
+  // Calculate delivery fee based on outlet distance
+  void _calculateDeliveryFee() {
+    // Formula: Rp 5.000/km dengan minimum Rp 10.000 dan maksimum Rp 30.000
+    const double pricePerKm = 5000;
+    const double minimumFee = 10000;
+    const double maximumFee = 30000;
+
+    double calculatedFee = outletDistance * pricePerKm;
+
+    // Apply minimum and maximum limits
+    if (calculatedFee < minimumFee) {
+      calculatedFee = minimumFee;
+    } else if (calculatedFee > maximumFee) {
+      calculatedFee = maximumFee;
+    }
+
+    setState(() {
+      delivery = calculatedFee;
     });
   }
 
@@ -150,16 +201,217 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
   }
 
   Future<void> _placeOrder() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('cart_items');
+    // Validasi outlet sudah dipilih
+    if (selectedOutletId == null) {
+      _showError('Silakan pilih outlet terlebih dahulu');
+      return;
+    }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Order placed successfully!')));
+    // Validasi cart tidak kosong
+    if (cartItems.isEmpty) {
+      _showError('Keranjang masih kosong');
+      return;
+    }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const OrderConfirmationScreen()),
+    // Validasi alamat
+    if (shippingAddress.isEmpty) {
+      _showError('Silakan pilih alamat pengiriman');
+      return;
+    }
+
+    setState(() {
+      isProcessing = true;
+    });
+
+    try {
+      // Prepare order items untuk backend
+      final List<Map<String, dynamic>> orderItems = cartItems.map((item) {
+        final pizzaId = item['id'] ?? 1;
+        final customization = item['customization'] ?? {};
+        final sizeId = customization['sizeId'] ?? 2;
+        final crustId = customization['crustId'] ?? 2;
+        final toppingIds = List<int>.from(customization['toppingIds'] ?? []);
+        final quantity = item['quantity'] ?? 1;
+
+        return {
+          'pizzaId': pizzaId,
+          'sizeId': sizeId,
+          'crustId': crustId,
+          'quantity': quantity,
+          'toppingIds': toppingIds,
+          'specialInstructions': customization['specialInstructions'] ?? '',
+        };
+      }).toList();
+
+      // Create order via API
+      final response = await ApiService.createOrder(
+        outletId: selectedOutletId!,
+        alamatKirim: shippingAddress,
+        items: orderItems,
+        catatan: 'Order from mobile app',
+        metodeBayar: selectedPaymentMethod,
+      );
+
+      if (response['success'] == true) {
+        // Clear cart after successful order
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('cart_items');
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const OrderConfirmationScreen(),
+          ),
+        );
+      } else {
+        final errorMsg = response['data']['message'] ?? 'Gagal membuat pesanan';
+        _showError(errorMsg);
+      }
+    } catch (e) {
+      _showError('Terjadi kesalahan: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isProcessing = false;
+        });
+      }
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins()),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showPaymentMethodDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Pilih Metode Pembayaran',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildPaymentOption(
+                  label: 'Transfer Bank',
+                  subtitle: 'BCA, BNI, Mandiri, BRI',
+                  icon: Icons.account_balance,
+                  paymentMethod: 'BANK_TRANSFER',
+                  paymentLabel: 'Transfer Bank',
+                ),
+                const SizedBox(height: 10),
+                _buildPaymentOption(
+                  label: 'GoPay',
+                  subtitle: 'Bayar dengan GoPay',
+                  icon: Icons.account_balance_wallet,
+                  paymentMethod: 'E_WALLET',
+                  paymentLabel: 'GoPay',
+                ),
+                const SizedBox(height: 10),
+                _buildPaymentOption(
+                  label: 'DANA',
+                  subtitle: 'Bayar dengan DANA',
+                  icon: Icons.account_balance_wallet,
+                  paymentMethod: 'E_WALLET',
+                  paymentLabel: 'DANA',
+                ),
+                const SizedBox(height: 10),
+                _buildPaymentOption(
+                  label: 'Bayar di Tempat (COD)',
+                  subtitle: 'Bayar saat pesanan tiba',
+                  icon: Icons.money,
+                  paymentMethod: 'CASH',
+                  paymentLabel: 'Bayar di Tempat (COD)',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Batal',
+                style: GoogleFonts.poppins(color: Colors.grey),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPaymentOption({
+    required String label,
+    required String subtitle,
+    required IconData icon,
+    required String paymentMethod,
+    required String paymentLabel,
+  }) {
+    final isSelected =
+        selectedPaymentMethod == paymentMethod &&
+        selectedPaymentLabel == paymentLabel;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          selectedPaymentMethod = paymentMethod;
+          selectedPaymentLabel = paymentLabel;
+          selectedPaymentIcon = icon;
+        });
+        Navigator.pop(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: isSelected ? lightYellowColor : Colors.grey[100],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: primaryColor, size: 28),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected) Icon(Icons.check_circle, color: primaryColor),
+          ],
+        ),
+      ),
     );
   }
 
@@ -423,27 +675,146 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                     _summaryRow('Delivery', 'Rp ${delivery.toInt()}'),
                     const Divider(height: 30),
                     _summaryRow('Total', 'Rp ${total.toInt()}', isTotal: true),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 30),
+
+                    // Payment Method Section
+                    Text(
+                      'Metode Pembayaran',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: _showPaymentMethodDialog,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: lightYellowColor,
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: primaryColor.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              selectedPaymentIcon,
+                              color: primaryColor,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 15),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    selectedPaymentLabel,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    selectedPaymentMethod == 'CASH'
+                                        ? 'Bayar saat pesanan tiba'
+                                        : 'Bayar sekarang',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              color: primaryColor,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Outlet Info
+                    if (selectedOutletName != null) ...[
+                      const SizedBox(height: 20),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.store, color: Colors.blue, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Pesanan dari: $selectedOutletName',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.blue[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 30),
                     SizedBox(
                       width: double.infinity,
                       height: 60,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: lightYellowColor,
+                          backgroundColor: isProcessing
+                              ? Colors.grey
+                              : lightYellowColor,
                           foregroundColor: primaryColor,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        onPressed: _placeOrder,
-                        child: Text(
-                          'Pesan Sekarang',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        onPressed: isProcessing ? null : _placeOrder,
+                        child: isProcessing
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        primaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Memproses...',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                'Pesan Sekarang',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ],

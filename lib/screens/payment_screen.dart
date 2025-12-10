@@ -23,7 +23,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   double total = 0;
   bool isProcessing = false;
   int? selectedOutletId;
-  String selectedPaymentMethod = 'CREDIT_CARD';
+  String selectedPaymentMethod = 'BANK_TRANSFER';
   String selectedPaymentLabel = 'Transfer Bank';
   IconData selectedPaymentIcon = Icons.account_balance;
 
@@ -493,7 +493,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   label: 'Transfer Bank',
                   subtitle: 'BCA, BNI, Mandiri, BRI',
                   icon: Icons.account_balance,
-                  paymentMethod: 'CREDIT_CARD',
+                  paymentMethod: 'BANK_TRANSFER',
                   paymentLabel: 'Transfer Bank',
                 ),
                 const SizedBox(height: 10),
@@ -502,17 +502,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   label: 'GoPay',
                   subtitle: 'Bayar dengan GoPay',
                   icon: Icons.account_balance_wallet,
-                  paymentMethod: 'CREDIT_CARD',
+                  paymentMethod: 'E_WALLET',
                   paymentLabel: 'GoPay',
-                ),
-                const SizedBox(height: 10),
-                // OVO
-                _buildPaymentOption(
-                  label: 'OVO',
-                  subtitle: 'Bayar dengan OVO',
-                  icon: Icons.account_balance_wallet,
-                  paymentMethod: 'CREDIT_CARD',
-                  paymentLabel: 'OVO',
                 ),
                 const SizedBox(height: 10),
                 // DANA
@@ -520,25 +511,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   label: 'DANA',
                   subtitle: 'Bayar dengan DANA',
                   icon: Icons.account_balance_wallet,
-                  paymentMethod: 'CREDIT_CARD',
+                  paymentMethod: 'E_WALLET',
                   paymentLabel: 'DANA',
                 ),
                 const SizedBox(height: 10),
-                // ShopeePay
-                _buildPaymentOption(
-                  label: 'ShopeePay',
-                  subtitle: 'Bayar dengan ShopeePay',
-                  icon: Icons.account_balance_wallet,
-                  paymentMethod: 'CREDIT_CARD',
-                  paymentLabel: 'ShopeePay',
-                ),
-                const SizedBox(height: 10),
-                // COD
+                // COD (Cash On Delivery)
                 _buildPaymentOption(
                   label: 'Bayar di Tempat (COD)',
                   subtitle: 'Bayar saat pesanan tiba',
                   icon: Icons.money,
-                  paymentMethod: 'COD',
+                  paymentMethod: 'CASH',
                   paymentLabel: 'Bayar di Tempat (COD)',
                 ),
               ],
