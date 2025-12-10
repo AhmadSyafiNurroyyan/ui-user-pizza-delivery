@@ -65,15 +65,21 @@ class _LoginScreenState extends State<LoginScreen> {
             } catch (_) {}
           }
 
-          // Update with login response data (idAkun, nama, email, role)
+          // Update with login response data (idAkun, nama, email, role, noHp, dob)
           userProfile['idAkun'] = data['data']['idAkun'];
           userProfile['nama'] = data['data']['nama'];
           userProfile['name'] = data['data']['nama']; // Dual key support
           userProfile['email'] = data['data']['email'];
           userProfile['role'] = data['data']['role'];
 
-          // Preserve noHp and dob if they exist (from signup or edit profile)
-          // Don't overwrite if they're already there
+          // Update noHp and dob from backend response if available
+          if (data['data']['noHp'] != null) {
+            userProfile['noHp'] = data['data']['noHp'];
+            userProfile['mobile'] = data['data']['noHp']; // Dual key support
+          }
+          if (data['data']['dob'] != null) {
+            userProfile['dob'] = data['data']['dob'];
+          }
 
           await prefs.setString('user_profile', jsonEncode(userProfile));
           print('✅ [LOGIN] Merged user profile: $userProfile');

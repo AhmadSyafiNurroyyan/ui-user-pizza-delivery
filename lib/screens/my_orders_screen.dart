@@ -403,43 +403,48 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
               ),
               const SizedBox(height: 12),
 
+              // Show cancel button only for PENDING and DIPROSES status
               Row(
                 children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 36,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CancelOrderScreen(
-                                orderId: order['id'],
-                                orderName: order['name'],
-                                orderPrice: order['price'],
-                              ),
+                  if (order['status'] == 'PENDING' ||
+                      order['status'] == 'DIPROSES')
+                    Expanded(
+                      child: SizedBox(
+                        height: 36,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          );
-                        },
-                        child: Text(
-                          'Batalkan Pesanan',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CancelOrderScreen(
+                                  orderId: order['id'],
+                                  orderName: order['name'],
+                                  orderPrice: order['price'],
+                                ),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'Batalkan Pesanan',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
+                  if (order['status'] == 'PENDING' ||
+                      order['status'] == 'DIPROSES')
+                    const SizedBox(width: 10),
                   Expanded(
                     child: SizedBox(
                       height: 36,
