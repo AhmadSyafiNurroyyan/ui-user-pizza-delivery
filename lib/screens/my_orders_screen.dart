@@ -163,7 +163,6 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
   Future<void> _reorderItems(Map<String, dynamic> order) async {
     try {
-      // Ambil items dari order
       final List<dynamic> orderItems = order['fullItems'] ?? [];
 
       if (orderItems.isEmpty) {
@@ -175,6 +174,22 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         );
         return;
       }
+
+      // Fetch menu dari backend untuk mendapatkan ID menu yang benar
+      final menuResponse = await ApiService.getMenu();
+
+      if (menuResponse['success'] != true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal memuat menu. Silakan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final List<dynamic> menuList = menuResponse['data'] ?? [];
 
       // Load existing cart
       final prefs = await SharedPreferences.getInstance();
@@ -191,47 +206,61 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       // Add items from order to cart
       int addedCount = 0;
       for (var item in orderItems) {
-        // Safely get values with null checks
-        final menuId = item['menuId'] ?? item['idMenu'];
-        if (menuId == null) continue; // Skip if no valid ID
+        final menuName = item['menuName']?.toString() ?? '';
 
-        final menuName = (item['menuName'] ?? item['namaMenu'] ?? 'Pizza')
-            .toString();
+        if (menuName.isEmpty) continue;
 
-        // Get price as integer and format it properly
-        final priceRaw = item['price'] ?? item['harga'] ?? 0;
+        // Cari menu di database berdasarkan nama
+        final menuItem = menuList.firstWhere(
+          (menu) =>
+              menu['name']?.toString().toLowerCase() == menuName.toLowerCase(),
+          orElse: () => null,
+        );
+
+        if (menuItem == null) {
+          print('⚠️ Menu tidak ditemukan: $menuName');
+          continue;
+        }
+
+        final menuId = menuItem['id'];
+        final priceRaw = item['price'] ?? 0;
         final priceInt = priceRaw is int
             ? priceRaw
             : (priceRaw is double ? priceRaw.toInt() : 0);
         final priceFormatted = 'Rp ${_formatPrice(priceInt)}';
-
-        final quantity = item['quantity'] ?? item['jumlah'] ?? 1;
+        final quantity = item['quantity'] ?? 1;
         final imageUrl =
-            (item['imageUrl'] ??
-                    item['gambar'] ??
-                    'https://images.unsplash.com/photo-1513104890138-7c749659a591')
-                .toString();
+            item['imageUrl'] ??
+            menuItem['img'] ??
+            'https://images.unsplash.com/photo-1513104890138-7c749659a591';
 
         // Check if item already exists in cart
-        final existingIndex = cartItems.indexWhere(
-          (cartItem) => cartItem['id'] == menuId,
-        );
+        final existingIndex = cartItems.indexWhere((c) => c['id'] == menuId);
 
         if (existingIndex != -1) {
-          // Update quantity
           final currentQty = cartItems[existingIndex]['quantity'] ?? 0;
           cartItems[existingIndex]['quantity'] = currentQty + quantity;
         } else {
-          // Add new item with proper format matching cart screen expectations
           cartItems.add({
             'id': menuId,
             'name': menuName,
-            'price': priceFormatted, // Format: "Rp 50.000"
+            'price': priceFormatted,
             'quantity': quantity,
-            'image': imageUrl,
+            'img': imageUrl,
           });
         }
         addedCount++;
+      }
+
+      if (addedCount == 0) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada item yang dapat ditambahkan'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
       }
 
       // Save updated cart
@@ -256,6 +285,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       );
     } catch (e) {
       print('❌ Error reordering: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Gagal menambahkan ke keranjang: $e'),

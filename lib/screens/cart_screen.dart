@@ -172,10 +172,23 @@ class _CartScreenState extends State<CartScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(15),
                         child: Image.network(
-                          item['img'],
+                          item['img'] ??
+                              'https://images.unsplash.com/photo-1513104890138-7c749659a591',
                           width: 80,
                           height: 80,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 80,
+                              height: 80,
+                              color: Colors.grey[300],
+                              child: const Icon(
+                                Icons.local_pizza,
+                                color: Colors.grey,
+                                size: 40,
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 15),
