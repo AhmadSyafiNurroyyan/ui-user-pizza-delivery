@@ -59,7 +59,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           final orderData = {
             'id': order['idPesanan'],
             'orderNumber': order['orderNumber'] ?? 'ORD-${order['idPesanan']}',
-            'name': order['customerName'] ?? 'Order',
+            'name': (order['items'] != null && order['items'].isNotEmpty)
+                ? (order['items'][0]['menuName'] ?? 'Pizza Order')
+                : 'Pizza Order',
             'date': _formatDate(
               order['tanggalPemesanan'] ?? order['tanggalPesan'],
             ),
@@ -420,6 +422,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => CancelOrderScreen(
+                                orderId: order['id'],
                                 orderName: order['name'],
                                 orderPrice: order['price'],
                               ),

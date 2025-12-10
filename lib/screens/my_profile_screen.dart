@@ -91,16 +91,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             ),
             const SizedBox(height: 30),
 
-            _profileField('Full Name', name),
+            _profileField('Nama Lengkap', name),
             const SizedBox(height: 15),
 
             _profileField('Email', email),
             const SizedBox(height: 15),
 
-            _profileField('Mobile Number', mobile),
+            _profileField('Nomor Telepon', mobile.isEmpty ? '-' : mobile),
             const SizedBox(height: 15),
 
-            _profileField('Date of Birth', dob),
+            _profileField('Tanggal Lahir', dob.isEmpty ? '-' : dob),
             const SizedBox(height: 40),
 
             SizedBox(

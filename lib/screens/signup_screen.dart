@@ -139,6 +139,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  Future<void> _selectDateSignup(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: primaryColor,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        dobController.text =
+            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      });
+    }
+  }
+
   Future<void> _saveSignupData() async {
     final prefs = await SharedPreferences.getInstance();
     final Map<String, String> user = {
@@ -325,11 +352,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: dobController,
+                      readOnly: true,
+                      onTap: () => _selectDateSignup(context),
                       decoration: InputDecoration(
-                        hintText: 'DD / MM /YYY',
+                        hintText: 'DD / MM / YYYY',
                         hintStyle: GoogleFonts.poppins(color: Colors.grey),
                         filled: true,
                         fillColor: lightYellowColor,
+                        suffixIcon: Icon(
+                          Icons.calendar_today,
+                          color: primaryColor,
+                          size: 20,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15),
                           borderSide: BorderSide.none,

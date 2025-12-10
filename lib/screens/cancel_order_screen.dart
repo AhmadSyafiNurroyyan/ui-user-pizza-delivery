@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
+import '../services/api_service.dart';
 import 'order_cancelled_screen.dart';
 
 class CancelOrderScreen extends StatefulWidget {
+  final int orderId;
   final String orderName;
   final String orderPrice;
 
   const CancelOrderScreen({
     super.key,
+    required this.orderId,
     required this.orderName,
     required this.orderPrice,
   });
@@ -20,6 +23,7 @@ class CancelOrderScreen extends StatefulWidget {
 class _CancelOrderScreenState extends State<CancelOrderScreen> {
   String? selectedReason;
   final TextEditingController otherReasonController = TextEditingController();
+  bool isLoading = false;
 
   final List<String> cancelReasons = [
     'Saya ingin mengubah alamat pengiriman',
@@ -35,22 +39,81 @@ class _CancelOrderScreenState extends State<CancelOrderScreen> {
     super.dispose();
   }
 
-  void _submitCancellation() {
+  Future<void> _submitCancellation() async {
     if (selectedReason == null && otherReasonController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Mohon pilih alasan pembatalan atau isi alasan lainnya.',
+            style: GoogleFonts.poppins(),
           ),
+          backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const OrderCancelledScreen()),
-    );
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final reason = otherReasonController.text.isNotEmpty
+          ? otherReasonController.text
+          : selectedReason;
+
+      print('🚫 Cancelling order ${widget.orderId} with reason: $reason');
+
+      final response = await ApiService.cancelOrder(
+        orderId: widget.orderId,
+        reason: reason,
+      );
+
+      print('✅ Cancel response: $response');
+
+      if (!mounted) return;
+
+      if (response['success'] == true || response['status'] == 'sukses') {
+        // Navigate to success screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OrderCancelledScreen()),
+        );
+      } else {
+        // Show error message
+        final errorMsg =
+            response['pesan'] ??
+            response['message'] ??
+            'Gagal membatalkan pesanan';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg, style: GoogleFonts.poppins()),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error cancelling order: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Terjadi kesalahan: $e',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -227,14 +290,23 @@ class _CancelOrderScreenState extends State<CancelOrderScreen> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        onPressed: _submitCancellation,
-                        child: Text(
-                          'Submit',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        onPressed: isLoading ? null : _submitCancellation,
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Submit',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                   ],

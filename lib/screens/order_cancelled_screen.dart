@@ -33,7 +33,6 @@ class OrderCancelledScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-
                     Container(
                       width: 150,
                       height: 150,
@@ -56,6 +55,7 @@ class OrderCancelledScreen extends StatelessWidget {
 
                     Text(
                       'Pesanan Dibatalkan',
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,

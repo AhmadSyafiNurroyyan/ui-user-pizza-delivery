@@ -386,6 +386,19 @@ class ApiService {
     return await get('/api/me/orders', requiresAuth: true);
   }
 
+  /// Cancel order
+  /// POST /api/orders/{orderId}/cancel
+  static Future<Map<String, dynamic>> cancelOrder({
+    required int orderId,
+    String? reason,
+  }) async {
+    String endpoint = '/api/orders/$orderId/cancel';
+    if (reason != null && reason.isNotEmpty) {
+      endpoint += '?reason=${Uri.encodeComponent(reason)}';
+    }
+    return await post(endpoint, {}, requiresAuth: true);
+  }
+
   /// Update payment method untuk order
   /// POST /api/orders/{orderId}/payment
   static Future<Map<String, dynamic>> updatePayment({

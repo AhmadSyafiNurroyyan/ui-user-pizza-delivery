@@ -49,7 +49,7 @@ class _DeliveryTimeScreenState extends State<DeliveryTimeScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Delivery time',
+          'Lacak Driver',
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -77,7 +77,7 @@ class _DeliveryTimeScreenState extends State<DeliveryTimeScreen> {
                   children: [
 
                     Text(
-                      'Shipping Address',
+                      'Alamat Pengiriman',
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -351,7 +351,7 @@ class _DeliveryTimeScreenState extends State<DeliveryTimeScreen> {
                     const SizedBox(height: 25),
 
                     Text(
-                      'Delivery Time',
+                      'Order Tracking',
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -381,22 +381,22 @@ class _DeliveryTimeScreenState extends State<DeliveryTimeScreen> {
                     const SizedBox(height: 25),
 
                     _trackingStep(
-                      'Your order has been accepted',
+                      'Pesananmu telah diterima',
                       '2 min',
                       true,
                     ),
                     _trackingStep(
-                      'The restaurant is preparing your order',
+                      'Restoran sedang menyiapkan pesananmu',
                       '5 min',
                       false,
                     ),
                     _trackingStep(
-                      'The delivery is on his way',
+                      'Driver sedang dalam perjalanan',
                       '10 min',
                       false,
                     ),
                     _trackingStep(
-                      'Your order has been delivered',
+                      'Pesanan akan sampai di tujuan',
                       '8 min',
                       false,
                     ),
@@ -742,7 +742,7 @@ class _DeliveryTimeScreenState extends State<DeliveryTimeScreen> {
                   },
                   icon: const Icon(Icons.phone, size: 20),
                   label: Text(
-                    'Call the delivery boy',
+                    'Panggil driver',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -774,7 +774,7 @@ class _DeliveryTimeScreenState extends State<DeliveryTimeScreen> {
                   },
                   icon: const Icon(Icons.message, size: 20),
                   label: Text(
-                    'Message the delivery boy',
+                    'Kirim Pesan',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

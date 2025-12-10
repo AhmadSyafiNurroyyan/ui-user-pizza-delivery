@@ -43,17 +43,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       final prefs = await SharedPreferences.getInstance();
-      final userProfile = {
-        'name': nameController.text,
-        'email': emailController.text,
-        'mobile': mobileController.text,
-        'dob': dobController.text,
-      };
+
+      // Load existing profile to preserve other fields
+      final existingRaw = prefs.getString('user_profile');
+      Map<String, dynamic> userProfile = {};
+      if (existingRaw != null) {
+        try {
+          userProfile = jsonDecode(existingRaw);
+        } catch (_) {}
+      }
+
+      // Update with new values (support both 'nama'/'name' and 'noHp'/'mobile')
+      userProfile['nama'] = nameController.text;
+      userProfile['name'] = nameController.text;
+      userProfile['email'] = emailController.text;
+      userProfile['noHp'] = mobileController.text;
+      userProfile['mobile'] = mobileController.text;
+      userProfile['dob'] = dobController.text;
+
       await prefs.setString('user_profile', jsonEncode(userProfile));
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
+        SnackBar(
+          content: Text(
+            'Profil berhasil diperbarui!',
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.green,
+        ),
       );
       Navigator.pop(context, true); // Return true to indicate success
     }
@@ -62,7 +80,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
       firstDate: DateTime(1950),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -80,7 +98,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
     if (picked != null) {
       setState(() {
-        dobController.text = "${picked.day}/${picked.month}/${picked.year}";
+        dobController.text =
+            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
       });
     }
   }
@@ -152,7 +171,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 30),
 
               _buildTextField(
-                'Full Name',
+                'Nama Lengkap',
                 nameController,
                 Icons.person_outline,
                 validator: (value) {
@@ -182,7 +201,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 15),
 
               _buildTextField(
-                'Mobile Number',
+                'Nomor Telepon',
                 mobileController,
                 Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
@@ -196,7 +215,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 15),
 
               _buildTextField(
-                'Date of Birth',
+                'Tanggal Lahir',
                 dobController,
                 Icons.calendar_today_outlined,
                 readOnly: true,
@@ -224,7 +243,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   onPressed: _saveProfile,
                   child: Text(
-                    'Save Changes',
+                    'Simpan Perubahan',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

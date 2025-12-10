@@ -427,7 +427,7 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Confirm Order',
+          'Konfirmasi Pesanan',
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -453,18 +453,13 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Shipping Address',
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(Icons.edit, size: 18, color: primaryColor),
-                      ],
+                    // 1. Hapus icon pensil di sebelah Alamat Pengiriman
+                    Text(
+                      'Alamat Pengiriman',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -486,31 +481,41 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                       ),
                     ),
                     const SizedBox(height: 25),
+                    // 2. Fungsikan icon "Edit" agar kembali ke keranjang
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Order Summary',
+                          'Ringkasan Pesanan',
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: lightYellowColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Edit',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: primaryColor,
-                              fontWeight: FontWeight.w600,
+                        InkWell(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: lightYellowColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, size: 14, color: primaryColor),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Edit',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -552,107 +557,88 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 8),
                                   Text(
-                                    '29 Nov, 15:20 pm',
+                                    item['price'],
                                     style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: primaryColor,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  SizedBox(
-                                    height: 32,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white,
-                                        foregroundColor: primaryColor,
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                      ),
-                                      onPressed: () => _removeItem(index),
-                                      child: Text(
-                                        'Cancel Order',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                  // Customization info (jika ada)
+                                  if (item['customization'] != null) ...[
+                                    Text(
+                                      'Size: ${item['customization']['sizeName'] ?? 'Medium'}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
                                       ),
                                     ),
-                                  ),
+                                    Text(
+                                      'Crust: ${item['customization']['crustName'] ?? 'Regular'}',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
+                            // Tombol quantity control
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.delete_outline,
-                                    color: primaryColor,
-                                  ),
-                                  onPressed: () => _removeItem(index),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  item['price'],
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: primaryColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '$quantity items',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit, size: 16),
-                                      color: primaryColor,
-                                      onPressed: () {},
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(
-                                        minWidth: 24,
-                                        minHeight: 24,
+                                    // Tombol Minus
+                                    Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: primaryColor,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.remove,
+                                          size: 16,
+                                        ),
+                                        color: primaryColor,
+                                        onPressed: () =>
+                                            _updateQuantity(index, -1),
+                                        padding: EdgeInsets.zero,
                                       ),
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
+                                        horizontal: 12,
                                       ),
                                       child: Text(
                                         '$quantity',
                                         style: GoogleFonts.poppins(
-                                          fontSize: 16,
+                                          fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
+                                    // Tombol Plus
                                     Container(
-                                      width: 24,
-                                      height: 24,
+                                      width: 32,
+                                      height: 32,
                                       decoration: const BoxDecoration(
                                         color: primaryColor,
                                         shape: BoxShape.circle,
                                       ),
                                       child: IconButton(
-                                        icon: const Icon(Icons.add, size: 14),
+                                        icon: const Icon(Icons.add, size: 16),
                                         color: Colors.white,
                                         onPressed: () =>
                                             _updateQuantity(index, 1),
@@ -670,9 +656,9 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                     const SizedBox(height: 20),
                     _summaryRow('Subtotal', 'Rp ${subtotal.toInt()}'),
                     const SizedBox(height: 12),
-                    _summaryRow('Tax and Fees', 'Rp ${tax.toInt()}'),
+                    _summaryRow('Pajak', 'Rp ${tax.toInt()}'),
                     const SizedBox(height: 12),
-                    _summaryRow('Delivery', 'Rp ${delivery.toInt()}'),
+                    _summaryRow('Ongkir', 'Rp ${delivery.toInt()}'),
                     const Divider(height: 30),
                     _summaryRow('Total', 'Rp ${total.toInt()}', isTotal: true),
                     const SizedBox(height: 30),

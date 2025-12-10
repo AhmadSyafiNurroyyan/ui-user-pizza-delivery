@@ -307,7 +307,7 @@ class _DeliveryAddressListScreenState extends State<DeliveryAddressListScreen> {
                         ),
                         onPressed: _addNewAddress,
                         child: Text(
-                          'Add New Address',
+                          'Tambah Alamat Baru',
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
