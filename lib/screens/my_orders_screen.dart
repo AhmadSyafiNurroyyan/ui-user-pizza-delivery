@@ -185,14 +185,21 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       // Add items from order to cart
       int addedCount = 0;
       for (var item in orderItems) {
+        // Safely get values with null checks
         final menuId = item['menuId'] ?? item['idMenu'];
-        final menuName = item['menuName'] ?? item['namaMenu'] ?? 'Pizza';
-        final price = item['price'] ?? item['harga'] ?? 0;
+        if (menuId == null) continue; // Skip if no valid ID
+        
+        final menuName = (item['menuName'] ?? item['namaMenu'] ?? 'Pizza').toString();
+        
+        // Get price as integer and format it properly
+        final priceRaw = item['price'] ?? item['harga'] ?? 0;
+        final priceInt = priceRaw is int ? priceRaw : (priceRaw is double ? priceRaw.toInt() : 0);
+        final priceFormatted = 'Rp ${_formatPrice(priceInt)}';
+        
         final quantity = item['quantity'] ?? item['jumlah'] ?? 1;
-        final imageUrl =
-            item['imageUrl'] ??
-            item['gambar'] ??
-            'https://images.unsplash.com/photo-1513104890138-7c749659a591';
+        final imageUrl = (item['imageUrl'] ?? 
+            item['gambar'] ?? 
+            'https://images.unsplash.com/photo-1513104890138-7c749659a591').toString();
 
         // Check if item already exists in cart
         final existingIndex = cartItems.indexWhere(
@@ -201,13 +208,14 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
         if (existingIndex != -1) {
           // Update quantity
-          cartItems[existingIndex]['quantity'] += quantity;
+          final currentQty = cartItems[existingIndex]['quantity'] ?? 0;
+          cartItems[existingIndex]['quantity'] = currentQty + quantity;
         } else {
-          // Add new item
+          // Add new item with proper format matching cart screen expectations
           cartItems.add({
             'id': menuId,
             'name': menuName,
-            'price': price,
+            'price': priceFormatted, // Format: "Rp 50.000"
             'quantity': quantity,
             'image': imageUrl,
           });
