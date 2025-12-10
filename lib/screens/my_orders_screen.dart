@@ -178,6 +178,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       // Fetch menu dari backend untuk mendapatkan ID menu yang benar
       final menuResponse = await ApiService.getMenu();
 
+      // ApiService wraps: {success: bool, data: {status: "sukses", data: [...]}}
       if (menuResponse['success'] != true) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -189,7 +190,19 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         return;
       }
 
-      final List<dynamic> menuList = menuResponse['data'] ?? [];
+      final backendResponse = menuResponse['data'];
+      if (backendResponse['status'] != 'sukses') {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal memuat menu. Silakan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final List<dynamic> menuList = backendResponse['data'] ?? [];
 
       // Load existing cart
       final prefs = await SharedPreferences.getInstance();
@@ -210,10 +223,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
         if (menuName.isEmpty) continue;
 
-        // Cari menu di database berdasarkan nama
+        // Cari menu di database berdasarkan nama (backend uses 'namaMenu')
         final menuItem = menuList.firstWhere(
           (menu) =>
-              menu['name']?.toString().toLowerCase() == menuName.toLowerCase(),
+              menu['namaMenu']?.toString().toLowerCase() ==
+              menuName.toLowerCase(),
           orElse: () => null,
         );
 
@@ -222,7 +236,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           continue;
         }
 
-        final menuId = menuItem['id'];
+        final menuId = menuItem['idMenu'];
+        print('✅ Matched "$menuName" → Menu ID: $menuId');
         final priceRaw = item['price'] ?? 0;
         final priceInt = priceRaw is int
             ? priceRaw
@@ -231,7 +246,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         final quantity = item['quantity'] ?? 1;
         final imageUrl =
             item['imageUrl'] ??
-            menuItem['img'] ??
+            menuItem['gambar'] ??
             'https://images.unsplash.com/photo-1513104890138-7c749659a591';
 
         // Check if item already exists in cart
@@ -797,9 +812,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                                       order['id'], // Pass orderId for backend API
                                 ),
                               ),
-                            ).then(
-                              (_) => _loadOrders(),
-                            ); // Refresh after submitting review
+                            ).then((result) {
+                              // Refresh orders after submitting review
+                              if (result == true) {
+                                _loadOrders();
+                              }
+                            });
                           }
                         },
                         style: ElevatedButton.styleFrom(
