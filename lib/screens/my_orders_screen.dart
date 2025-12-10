@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import '../services/api_service.dart';
 import 'leave_review_screen.dart';
-import 'history_screen.dart';
 import 'cancel_order_screen.dart';
 import 'delivery_time_screen.dart';
 import 'cart_screen.dart';
@@ -275,14 +274,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.history, color: primaryColor),
+            icon: const Icon(Icons.refresh, color: primaryColor),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HistoryScreen()),
-              );
+              _loadOrders(); // Refresh data
             },
-            tooltip: 'Lihat Riwayat',
+            tooltip: 'Refresh',
           ),
         ],
       ),
