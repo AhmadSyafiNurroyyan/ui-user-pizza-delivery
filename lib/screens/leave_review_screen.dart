@@ -254,7 +254,9 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                                             ),
                                           ),
                                         );
-                                        Navigator.pop(context);
+                                        
+                                        // Return true to trigger refresh in MyOrdersScreen
+                                        Navigator.pop(context, true);
                                       } else {
                                         _showError(
                                           response['data']['pesan'] ??

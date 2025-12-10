@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import '../services/api_service.dart';
 import 'leave_review_screen.dart';
+import 'view_review_screen.dart';
 import 'cancel_order_screen.dart';
 import 'delivery_time_screen.dart';
 import 'cart_screen.dart';
@@ -76,6 +77,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                 : 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
             'canReview': order['opsiUlasan'] == true,
             'fullItems': order['items'] ?? [], // Simpan data items lengkap
+            // Review data
+            'hasReview': order['ulasan'] != null,
+            'reviewRating': order['ulasan']?['rating'],
+            'reviewComment': order['ulasan']?['komentar'] ?? '',
+            'reviewDate': order['ulasan']?['tanggalUlasan'],
           };
 
           // Categorize by status
@@ -188,18 +194,23 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         // Safely get values with null checks
         final menuId = item['menuId'] ?? item['idMenu'];
         if (menuId == null) continue; // Skip if no valid ID
-        
-        final menuName = (item['menuName'] ?? item['namaMenu'] ?? 'Pizza').toString();
-        
+
+        final menuName = (item['menuName'] ?? item['namaMenu'] ?? 'Pizza')
+            .toString();
+
         // Get price as integer and format it properly
         final priceRaw = item['price'] ?? item['harga'] ?? 0;
-        final priceInt = priceRaw is int ? priceRaw : (priceRaw is double ? priceRaw.toInt() : 0);
+        final priceInt = priceRaw is int
+            ? priceRaw
+            : (priceRaw is double ? priceRaw.toInt() : 0);
         final priceFormatted = 'Rp ${_formatPrice(priceInt)}';
-        
+
         final quantity = item['quantity'] ?? item['jumlah'] ?? 1;
-        final imageUrl = (item['imageUrl'] ?? 
-            item['gambar'] ?? 
-            'https://images.unsplash.com/photo-1513104890138-7c749659a591').toString();
+        final imageUrl =
+            (item['imageUrl'] ??
+                    item['gambar'] ??
+                    'https://images.unsplash.com/photo-1513104890138-7c749659a591')
+                .toString();
 
         // Check if item already exists in cart
         final existingIndex = cartItems.indexWhere(
@@ -721,19 +732,41 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                       height: 34,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LeaveReviewScreen(
-                                productName: order['name'] ?? 'Order',
-                                productImage:
-                                    order['img'] ??
-                                    'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
-                                orderId:
-                                    order['id'], // Pass orderId for backend API
+                          // Check if user already submitted review
+                          if (order['hasReview'] == true) {
+                            // Navigate to View Review Screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ViewReviewScreen(
+                                  productName: order['name'] ?? 'Order',
+                                  productImage:
+                                      order['img'] ??
+                                      'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
+                                  rating: order['reviewRating'] ?? 5,
+                                  comment: order['reviewComment'] ?? '',
+                                  reviewDate: order['reviewDate'] != null
+                                      ? _formatDate(order['reviewDate'])
+                                      : null,
+                                ),
                               ),
-                            ),
-                          );
+                            ).then((_) => _loadOrders()); // Refresh after viewing
+                          } else {
+                            // Navigate to Leave Review Screen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LeaveReviewScreen(
+                                  productName: order['name'] ?? 'Order',
+                                  productImage:
+                                      order['img'] ??
+                                      'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
+                                  orderId:
+                                      order['id'], // Pass orderId for backend API
+                                ),
+                              ),
+                            ).then((_) => _loadOrders()); // Refresh after submitting review
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
@@ -744,7 +777,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                           ),
                         ),
                         child: Text(
-                          'Beri Review',
+                          order['hasReview'] == true ? 'Lihat Review' : 'Beri Review',
                           style: GoogleFonts.poppins(
                             fontSize: 8.5,
                             fontWeight: FontWeight.w500,
