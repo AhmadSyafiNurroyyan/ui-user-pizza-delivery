@@ -53,7 +53,7 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Leave a Review',
+          'Tinggalkan Review',
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -113,7 +113,7 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "We'd love to know what you\nthink of your dish.",
+                      "Kita sangat menghargai umpan balik Kamu!",
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 15,
@@ -148,7 +148,7 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                     const SizedBox(height: 30),
 
                     Text(
-                      'Leave us your comment!',
+                      'Tinggalkan komentar Kamu!',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -167,7 +167,7 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                         controller: _reviewController,
                         maxLines: 5,
                         decoration: InputDecoration(
-                          hintText: 'Write Review...',
+                          hintText: 'Tulis komentar di sini...',
                           hintStyle: GoogleFonts.poppins(
                             color: Colors.grey[600],
                             fontSize: 14,
