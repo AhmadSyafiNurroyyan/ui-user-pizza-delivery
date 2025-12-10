@@ -750,7 +750,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                                       : null,
                                 ),
                               ),
-                            ).then((_) => _loadOrders()); // Refresh after viewing
+                            ).then(
+                              (_) => _loadOrders(),
+                            ); // Refresh after viewing
                           } else {
                             // Navigate to Leave Review Screen
                             Navigator.push(
@@ -765,7 +767,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                                       order['id'], // Pass orderId for backend API
                                 ),
                               ),
-                            ).then((_) => _loadOrders()); // Refresh after submitting review
+                            ).then(
+                              (_) => _loadOrders(),
+                            ); // Refresh after submitting review
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -777,7 +781,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                           ),
                         ),
                         child: Text(
-                          order['hasReview'] == true ? 'Lihat Review' : 'Beri Review',
+                          order['hasReview'] == true
+                              ? 'Lihat Review'
+                              : 'Beri Review',
                           style: GoogleFonts.poppins(
                             fontSize: 8.5,
                             fontWeight: FontWeight.w500,
