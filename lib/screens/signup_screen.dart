@@ -70,11 +70,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
         // Berhasil register
         final data = response['data'];
 
-        // Optional: Simpan user profile ke SharedPreferences untuk display purposes
-        if (data['data'] != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_profile', jsonEncode(data['data']));
-        }
+        // Simpan user profile ke SharedPreferences dengan data lengkap
+        final prefs = await SharedPreferences.getInstance();
+        final userProfile = {
+          'nama': nameController.text.trim(),
+          'name': nameController.text.trim(), // Support both keys
+          'email': emailController.text.trim(),
+          'noHp': mobileController.text.trim(),
+          'mobile': mobileController.text.trim(), // Support both keys
+          'dob': dobController.text.trim(),
+          'role': 'USER',
+        };
+        await prefs.setString('user_profile', jsonEncode(userProfile));
+
+        print('✅ [SIGNUP] Saved user profile: $userProfile'); // Debug
 
         // Show success message
         if (!mounted) return;

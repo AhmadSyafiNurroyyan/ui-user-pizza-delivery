@@ -52,10 +52,31 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = response['data'];
 
         // JWT token sudah auto-saved di ApiService
-        // Simpan user profile ke SharedPreferences
+        // Simpan user profile ke SharedPreferences (MERGE with existing data to preserve noHp and dob)
         if (data['data'] != null) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_profile', jsonEncode(data['data']));
+
+          // Load existing profile to preserve noHp and dob from signup/edit
+          final existingRaw = prefs.getString('user_profile');
+          Map<String, dynamic> userProfile = {};
+          if (existingRaw != null) {
+            try {
+              userProfile = jsonDecode(existingRaw);
+            } catch (_) {}
+          }
+
+          // Update with login response data (idAkun, nama, email, role)
+          userProfile['idAkun'] = data['data']['idAkun'];
+          userProfile['nama'] = data['data']['nama'];
+          userProfile['name'] = data['data']['nama']; // Dual key support
+          userProfile['email'] = data['data']['email'];
+          userProfile['role'] = data['data']['role'];
+
+          // Preserve noHp and dob if they exist (from signup or edit profile)
+          // Don't overwrite if they're already there
+
+          await prefs.setString('user_profile', jsonEncode(userProfile));
+          print('✅ [LOGIN] Merged user profile: $userProfile');
         }
 
         // Navigate ke MainNav (Home)

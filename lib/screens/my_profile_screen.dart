@@ -27,16 +27,31 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   Future<void> _loadUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('user_profile');
+
+    print('🔍 [DEBUG] Raw user_profile: $raw'); // Debug log
+
     if (raw != null) {
       try {
         final Map<String, dynamic> user = jsonDecode(raw);
+        print('📦 [DEBUG] Parsed user data: $user'); // Debug log
+
         setState(() {
           name = user['nama'] ?? user['name'] ?? '';
           email = user['email'] ?? '';
           mobile = user['noHp'] ?? user['mobile'] ?? '';
           dob = user['dob'] ?? '';
         });
-      } catch (_) {}
+
+        print(
+          '✅ [DEBUG] Loaded - Name: $name, Email: $email, Mobile: $mobile, DOB: $dob',
+        ); // Debug log
+      } catch (e) {
+        print('❌ [DEBUG] Error parsing user_profile: $e'); // Debug log
+      }
+    } else {
+      print(
+        '⚠️ [DEBUG] No user_profile found in SharedPreferences',
+      ); // Debug log
     }
   }
 
@@ -90,6 +105,39 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               ],
             ),
             const SizedBox(height: 30),
+
+            // Info banner jika data belum lengkap
+            if (mobile.isEmpty || dob.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade700,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Lengkapi profil Anda untuk pengalaman yang lebih baik.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.orange.shade900,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             _profileField('Nama Lengkap', name),
             const SizedBox(height: 15),
