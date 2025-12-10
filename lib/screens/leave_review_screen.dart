@@ -228,10 +228,11 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
                                       // Submit review ke backend API
                                       final response =
                                           await ApiService.submitReview(
-                                        orderId: widget.orderId,
-                                        rating: selectedRating,
-                                        komentar: _reviewController.text.trim(),
-                                      );
+                                            orderId: widget.orderId,
+                                            rating: selectedRating,
+                                            komentar: _reviewController.text
+                                                .trim(),
+                                          );
 
                                       setState(() {
                                         _isSubmitting = false;
@@ -239,15 +240,18 @@ class _LeaveReviewScreenState extends State<LeaveReviewScreen> {
 
                                       if (response['success'] == true) {
                                         if (!mounted) return;
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           SnackBar(
                                             content: Text(
                                               'Review berhasil dikirim!',
                                               style: GoogleFonts.poppins(),
                                             ),
                                             backgroundColor: Colors.green,
-                                            duration: const Duration(seconds: 2),
+                                            duration: const Duration(
+                                              seconds: 2,
+                                            ),
                                           ),
                                         );
                                         Navigator.pop(context);
