@@ -794,10 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             content: Text(
               'Fitur $label akan segera hadir!\nTunggu update selanjutnya ya 🎉',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.grey[700],
-              ),
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[700]),
             ),
             actions: [
               TextButton(
