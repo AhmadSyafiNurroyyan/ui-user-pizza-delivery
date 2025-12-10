@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import '../services/api_service.dart';
 import 'leave_review_screen.dart';
 import 'history_screen.dart';
 import 'cancel_order_screen.dart';
 import 'delivery_time_screen.dart';
+import 'cart_screen.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
@@ -73,6 +76,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                       'https://images.unsplash.com/photo-1513104890138-7c749659a591')
                 : 'https://images.unsplash.com/photo-1513104890138-7c749659a591',
             'canReview': order['opsiUlasan'] == true,
+            'fullItems': order['items'] ?? [], // Simpan data items lengkap
           };
 
           // Categorize by status
@@ -150,6 +154,95 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]}.',
     );
+  }
+
+  Future<void> _reorderItems(Map<String, dynamic> order) async {
+    try {
+      // Ambil items dari order
+      final List<dynamic> orderItems = order['fullItems'] ?? [];
+
+      if (orderItems.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak ada item untuk dipesan kembali'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Load existing cart
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('cart_items');
+      List<Map<String, dynamic>> cartItems = [];
+
+      if (raw != null) {
+        try {
+          final List<dynamic> decoded = jsonDecode(raw);
+          cartItems = decoded.cast<Map<String, dynamic>>();
+        } catch (_) {}
+      }
+
+      // Add items from order to cart
+      int addedCount = 0;
+      for (var item in orderItems) {
+        final menuId = item['menuId'] ?? item['idMenu'];
+        final menuName = item['menuName'] ?? item['namaMenu'] ?? 'Pizza';
+        final price = item['price'] ?? item['harga'] ?? 0;
+        final quantity = item['quantity'] ?? item['jumlah'] ?? 1;
+        final imageUrl = item['imageUrl'] ??
+            item['gambar'] ??
+            'https://images.unsplash.com/photo-1513104890138-7c749659a591';
+
+        // Check if item already exists in cart
+        final existingIndex =
+            cartItems.indexWhere((cartItem) => cartItem['id'] == menuId);
+
+        if (existingIndex != -1) {
+          // Update quantity
+          cartItems[existingIndex]['quantity'] += quantity;
+        } else {
+          // Add new item
+          cartItems.add({
+            'id': menuId,
+            'name': menuName,
+            'price': price,
+            'quantity': quantity,
+            'image': imageUrl,
+          });
+        }
+        addedCount++;
+      }
+
+      // Save updated cart
+      await prefs.setString('cart_items', jsonEncode(cartItems));
+
+      // Show success message
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$addedCount item berhasil ditambahkan ke keranjang'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // Navigate to cart screen
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const CartScreen()),
+      );
+    } catch (e) {
+      print('❌ Error reordering: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menambahkan ke keranjang: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -660,7 +753,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                     child: SizedBox(
                       height: 34,
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () => _reorderItems(order),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: primaryColor,
                           padding: const EdgeInsets.symmetric(horizontal: 2),
