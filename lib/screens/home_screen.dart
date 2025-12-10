@@ -769,22 +769,68 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _categoryIcon(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: lightYellowColor,
-            borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                Icon(Icons.construction, color: primaryColor, size: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Coming Soon',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Fitur $label akan segera hadir!\nTunggu update selanjutnya ya 🎉',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'OK',
+                  style: GoogleFonts.poppins(
+                    color: primaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Icon(icon, color: primaryColor, size: 26),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: GoogleFonts.poppins(fontSize: 11, color: Colors.black87),
-        ),
-      ],
+        );
+      },
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: lightYellowColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: primaryColor, size: 26),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: GoogleFonts.poppins(fontSize: 11, color: Colors.black87),
+          ),
+        ],
+      ),
     );
   }
 
